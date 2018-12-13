@@ -8,8 +8,8 @@ TODO:
       in
 - ☑ rewrite counterfactual to sample a shadow world by
   samping close exogenous randomness
-- write physics simulator run_physics
-- animate worlds
+- ☑ write physics simulator run_physics
+- ☑ animate worlds
 - write L0 and view worlds it chooses
 - hope that a bunch of these involve A hitting B.
 - write S1 and evaluate on:
@@ -272,28 +272,31 @@ var all_true = function(meanings) {
 // then conclusion would have been the case
 var counterfactual = function(args) {
   // how often is the conclusion true when the premise is?
-  var cf = Infer({method: "rejection", samples: 10}, function() {
-    var shadow_w = shadowStatePrior(args.target_world);
-    // i.e. condition on truth of premise.
-    // premise is on *initial conditions*
-    var premise = meaning({
-      utterance: args.premise,
-      target_world: shadow_w,
-      timing: "initial",
-      // input true world as the "counterfactual" now
-      counterfactual_world: args.target_world
-    });
-    factor_meaning(premise);
-    // return whether or not conclusion is true
-    // conclusion is on *final conditions*
-    var conclusion = meaning({
-      utterance: args.conclusion,
-      target_world: shadow_w,
-      timing: "final",
-      counterfactual_world: args.target_world
-    });
-    return conclusion;
-  });
+  var cf = Infer(
+    {method: "rejection", samples: 10},
+    function() {
+      var shadow_w = shadowStatePrior(args.target_world);
+      // i.e. condition on truth of premise.
+      // premise is on *initial conditions*
+      var premise = meaning({
+        utterance: args.premise,
+        target_world: shadow_w,
+        timing: "initial",
+        // input true world as the "counterfactual" now
+        counterfactual_world: args.target_world
+      });
+      factor_meaning(premise);
+      // return whether or not conclusion is true
+      // conclusion is on *final conditions*
+      var conclusion = meaning({
+        utterance: args.conclusion,
+        target_world: shadow_w,
+        timing: "final",
+        counterfactual_world: args.target_world
+      });
+      return conclusion;
+    }
+  );
   var scr = cf.score(1);
   return (scr > -Infinity) ? Math.exp(scr) : 0;
 };
@@ -429,24 +432,32 @@ var meaning = function(args) {
   }
 };
 
-var rs = Infer({method: "rejection", samples: 10}, function() {
-// var rs = Infer({method: "enumerate"}, function() {
-  var w = statePrior();
-  var cf_type_premise = sample_cf_type();
-  var cf_type_conclusion = sample_cf_type();
-  var m = meaning({
-    utterance: "A moved B",
-    target_world: w,
-    cf_type_premise: cf_type_premise,
-    cf_type_conclusion: cf_type_conclusion
-  });
-  factor_meaning(m);
-  return extend(w, _.fromPairs([
-    ["meaning", m],
-    ["cf_type_premise", cf_type_premise],
-    ["cf_type_conclusion", cf_type_conclusion]
-  ]));
-}).support();
+var cached_meaning = cache(function(arg_string) {
+  var args = JSON.parse(arg_string);
+  return meaning(args);
+});
+
+var l0 = cache(Infer(
+  {method: "rejection", samples: 10},
+  function() {
+    // var rs = Infer({method: "enumerate"}, function() {
+    var w = statePrior();
+    var cf_type_premise = sample_cf_type();
+    var cf_type_conclusion = sample_cf_type();
+    var m = cached_meaning(JSON.stringify({
+      utterance: "A moved B",
+      target_world: w,
+      cf_type_premise: cf_type_premise,
+      cf_type_conclusion: cf_type_conclusion
+    }));
+    factor_meaning(m);
+    return extend(w, _.fromPairs([
+      ["meaning", m],
+      ["cf_type_premise", cf_type_premise],
+      ["cf_type_conclusion", cf_type_conclusion]
+    ]));
+  }
+));
 
 var animate_results = function(r) {
   if (r.meaning > 0.7) {
@@ -454,8 +465,7 @@ var animate_results = function(r) {
     animate(r);
   }
 };
-map(animate_results, rs);
-
+map(animate_results, l0.support());
 
 // displayObj(w.velocities.B);
 // displayObj(w.shadow_w.velocities.B)
