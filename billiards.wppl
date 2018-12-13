@@ -440,7 +440,7 @@ var cached_meaning = cache(function(arg_string) {
 });
 
 var l0 = Infer(
-  {method: "rejection", samples: 5},
+  {method: "rejection", samples: 10},
   function() {
     // var rs = Infer({method: "enumerate"}, function() {
     var w = statePrior();
