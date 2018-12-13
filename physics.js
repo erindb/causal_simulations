@@ -53,7 +53,7 @@ var world = new b2World(
 
 // same fixture definition for all objects
 var fixDef = new b2FixtureDef;
-fixDef.density = 10.0;
+fixDef.density = 1.0;
 fixDef.friction = 0.0;
 fixDef.restitution = 0.7;
 
