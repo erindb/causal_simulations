@@ -2,13 +2,36 @@
 
 TODO:
 
-- rewrite statePrior in terms of exogenous randomness
-- rewrite counterfactual to sample a shadow world by
+- ☑ rewrite statePrior in terms of exogenous randomness
+    - actually, JK, it's already basically exogenous.
+      all the initial position and velocity stuff is
+      in
+- ☑ rewrite counterfactual to sample a shadow world by
   samping close exogenous randomness
 - write physics simulator run_physics
 - animate worlds
 - write L0 and view worlds it chooses
 - hope that a bunch of these involve A hitting B.
+- write S1 and evaluate on:
+    - A hits B
+        - and B was still ==> YES
+        - and B was moving in different direction ==> YES
+        - and B was moving in same direction ==> ???
+        - and B was moving in opposite direction ==> ???
+    - B hits A
+        - and A was still ==> ???
+        - and A was moving in different direction ==> ???
+        - and A was moving in same direction ==> ???
+        - and A was moving in opposite direction ==> ???
+    - A and B do not collide
+        - and both are moving ==> NO
+        - and A is moving, B is still ==> NO
+        - and A is still, B is moving ==> NO
+- extend to 3 objects, A, B, and E
+- evaluate S1 on:
+    - overdetermination
+    - joint cause
+    - preemption
 
 */
 
@@ -36,11 +59,65 @@ var discretizedUniform = function(a, b, nbins) {
 var factor_meaning = function(meaning) {
   factor(Math.log(meaning));
 };
+var clone = function(x) {
+  return JSON.parse(JSON.stringify(x));
+};
+
+// physics
+var rescale = function(x, total) {
+  var n = 4;
+  var placeable_total = total/3;
+  return placeable_total + (placeable_total/n) * (2*x+1);
+};
+var place_object = function(w, obj) {
+  var v_scale = 50;
+  return {
+    x: rescale(w.positions[obj].x, worldWidth),
+    y: rescale(1 - w.positions[obj].y, worldHeight),
+    velocity: [
+      v_scale*w.velocities[obj].x,
+      v_scale*w.velocities[obj].y
+    ]
+  }
+};
+var billiard_ball = {
+  shape: "circle",
+  static: false,
+  dims: [10]
+};
+var physicsify_world = function(w) {
+  var A = _.extend(clone(billiard_ball), place_object(w, "A"));
+  var B = _.extend(clone(billiard_ball), place_object(w, "B"));
+  return [A, B];
+};
+var unphysicsify_world = function(w) {
+  var A = w[0];
+  var B = w[1];
+  return {
+    objects: ["A", "B"],
+    positions: {
+      "A": {x: A.x, y: A.y},
+      "B": {x: B.x, y: B.y}
+    },
+    velocities: {
+      "A": {x: A.velocity[0], y: A.velocity[1]},
+      "B": {x: B.velocity[0], y: B.velocity[1]}
+    }
+  };
+};
+var run_physics = function(w) {
+  return unphysicsify_world(
+    physics.run(300, physicsify_world(w))
+  );
+};
+var animate = function(w) {
+  physics.animate(300, physicsify_world(w));
+};
 
 // World prior
 
 // Prior over positions.
-// 4x4 grid of starting positions.
+// NxN grid of starting positions.
 var all_positions = reduce(function(x, acc) {
   return acc.concat(map(function(y) {
     return {x: x, y: y};
@@ -50,8 +127,8 @@ var all_positions = reduce(function(x, acc) {
 var positionPrior = function(available_positions) {
   var i = randomInteger(available_positions.length);
   return {
-    available_positions: available_positions.slice(0, i).concat(
-          available_positions.slice(i+1, available_positions.length)),
+    available_positions: (available_positions.slice(0, i).concat(
+          available_positions.slice(i+1, available_positions.length))),
     position: available_positions[i]
   }
 }
@@ -80,23 +157,52 @@ var velocityPrior = function() {
 // Prior over velocities
 var velocitiesPrior = function(objects) {
   return reduce(function(o, acc) {
-    var x_velocity = velocityPrior();
-    var y_velocity = velocityPrior();
     return _.extend(acc, _.fromPairs([[
       o,
-      {x: x_velocity, y: y_velocity}
+      velocityPrior()
     ]]));
   }, {}, objects);
 };
 
-var shadowVelocityPrior = function(v) {
-  return flip(STICKINESS) ? v : velocityPrior();
-};
-
 var shadowPositionsPrior = function(positions) {
-  return reduce(function(p, acc) {
-
-  }, {}, _.toPairs(positions));
+  var stickiness_samples = reduce(function(obj, acc) {
+    var p = positions[obj];
+    var keep = flip(STICKINESS);
+    return {
+      taken_positions: keep ? acc.taken_positions.concat([p]) : acc.taken_positions,
+      pieces: acc.pieces.concat([[obj, keep, p]])
+    };
+  }, {taken_positions: [], pieces: []}, _.keys(positions));
+  var available_positions = _.difference(
+    all_positions,
+    stickiness_samples.taken_positions
+  );
+  var dict_pairs = reduce(
+    function(stickiness_sample, acc) {
+      var obj = stickiness_sample[0];
+      var keep = stickiness_sample[1];
+      var p = stickiness_sample[2];
+      var new_positions = acc.new_positions;
+      var available_positions = acc.available_positions;
+      if (keep) {
+        return {
+          new_positions: new_positions.concat([[obj, p]]),
+          available_positions: available_positions
+        };
+      } else {
+        var position_sample = positionPrior(available_positions);
+        return {
+          new_positions: new_positions.concat([
+            [obj, position_sample.position]
+          ]),
+          available_positions: position_sample.available_positions
+        };
+      }
+    },
+    {new_positions: [], available_positions: available_positions},
+    stickiness_samples.pieces
+  );
+  return _.fromPairs(dict_pairs.new_positions);
 };
 
 // Sample positions and velocities for each object
@@ -112,25 +218,24 @@ var statePrior = function() {
   }
 };
 
+var shadowVelocitiesPrior = function(velocities) {
+  return _.fromPairs(map(function(v) {
+    return flip(STICKINESS) ? v : [v[0], velocityPrior()];
+  }, _.toPairs(velocities)));
+};
+
 var shadowStatePrior = function(w) {
-  var shadow_positions = shadowPositionsPrior(w.positions);
-  var shadow_velocities = map(shadowVelocityPrior(v), w.velocities);
   return {
     objects: w.objects,
-    positions: shadow_positions,
-    velocities: shadow_velocities
-  }
+    positions: shadowPositionsPrior(w.positions),
+    velocities: shadowVelocitiesPrior(w.velocities)
+  };
 };
 
 var all_true = function(meanings) {
   return reduce(function(meaning, acc) {
     return acc * meaning;
   }, 1, meanings);
-};
-
-// TODO run physics
-var run_physics = function(w) {
-  return w;
 };
 
 // if premise had been the case,
@@ -261,16 +366,30 @@ var meaning = function(utterance, w, timing, cf_version, original) {
 var utterance = "A moved B";
 var objects = ["A", "B"];
 
-var w = Infer({method: "rejection", samples: 1}, function() {
-  var w = statePrior();
-  // ambiguity about the meaning of a counterfactual
-  var cf_version = uniformDraw(["how", "whether"]);
-  var m = meaning(utterance, w, undefined, cf_version);
-  factor_meaning(m);
-  return _.extend(w, _.fromPairs([
-    ["cf_version", cf_version],
-    ["meaning", m]
-  ]));
-}).support()[0];
+// var w = Infer({method: "rejection", samples: 1}, function() {
+//   var w = statePrior();
+//   // ambiguity about the meaning of a counterfactual
+//   var cf_version = uniformDraw(["how", "whether"]);
+//   var m = meaning(utterance, w, undefined, cf_version);
+//   factor_meaning(m);
+//   return _.extend(w, _.fromPairs([
+//     ["cf_version", cf_version],
+//     ["meaning", m]
+//   ]));
+// }).support()[0];
 
-displayObj(w);
+// displayObj(w);
+
+var w = statePrior();
+// displayObj(w);
+// animate(w);
+
+// // physics.animate(300, physicsify_world(w));
+// var collision_world = {
+//   objects: ["A", "B"],
+//   positions: {A: {x: 0, y: 0}, B: {x: 1, y: 0}},
+//   velocities: {A: {x: 1, y: 0}, B: {x: 0, y: 0}},
+// };
+// displayObj(unphysicsify_world(
+//   physics.run(300, physicsify_world(collision_world))));
+// // physics.animate(300, physicsify_world(collision_world));
