@@ -35,7 +35,7 @@ TODO:
 
 */
 
-var STICKINESS = 0.5;
+var STICKINESS = 0.95;
 
 
 // utils
@@ -420,10 +420,10 @@ var meaning = function(args) {
 var rs = Infer({method: "rejection", samples: 1}, function() {
 // var w = Infer({method: "enumerate"}, function() {
   var w = statePrior();
-  var shadow_w = statePrior();
+  var shadow_w = shadowStatePrior(w);
   // TODO: ambiguity about the meaning of a counterfactual
   // var cf_version = uniformDraw(["how", "whether"]);
-  var cf_version = "how";
+  var cf_version = "whether";
     var m = meaning({
       utterance: "A moved B",
       target_world: w,
