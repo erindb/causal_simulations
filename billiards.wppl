@@ -66,7 +66,7 @@ var extend = function(a, b) {
 };
 
 // physics
-var placeable_section_denominator = 11;
+var placeable_section_denominator = 5;
 var n = 4;
 var placeable_x = worldWidth/placeable_section_denominator;
 var x_margin = placeable_x*((placeable_section_denominator-1)/2);
@@ -87,13 +87,15 @@ var unscale_y = function(y) {
 var unscale_position = function(p) {
   return {x: unscale_x(p), y: unscale_y(p)};
 };
-var v_scale = 10;
+var v_scale = 50;
 var scale_velocity = function(v) {
   return v*v_scale;
 };
 var unscale_velocity = function(v) {
   return {x: v[0]/v_scale, y: v[1]/v_scale};
 };
+var a_size = 4;
+var b_size = 3;
 var place_object = function(w, obj) {
   return {
     x: scale_x(w.positions[obj].x),
@@ -102,7 +104,7 @@ var place_object = function(w, obj) {
       scale_velocity(w.velocities[obj].x),
       scale_velocity(w.velocities[obj].y)
     ],
-    dims: obj == "A" ? [3] : [3.1]
+    dims: obj == "A" ? [a_size] : [b_size]
   }
 };
 var billiard_ball = {
@@ -115,7 +117,7 @@ var physicsify_world = function(w) {
   return [A, B];
 };
 var unphysicsify_world = function(w) {
-  var a_index = w[0].dims[0]==3 ? 0 : 1;
+  var a_index = w[0].dims[0]==a_size ? 0 : 1;
   var b_index = 1 - a_index;
   var A = w[a_index];
   var B = w[b_index];
@@ -273,7 +275,7 @@ var all_true = function(meanings) {
 var counterfactual = function(args) {
   // how often is the conclusion true when the premise is?
   var cf = Infer(
-    {method: "rejection", samples: 10},
+    {method: "rejection", samples: 50},
     function() {
       var shadow_w = shadowStatePrior(args.target_world);
       // i.e. condition on truth of premise.
@@ -334,7 +336,7 @@ var explanation = function(args) {
     meaning({
       utterance: args.explanandum,
       target_world: args.target_world,
-      timing: "initial"
+      timing: "final"
     }),
     // counterfactually, if not explanans, then not explanandum.
     counterfactual({
@@ -437,8 +439,8 @@ var cached_meaning = cache(function(arg_string) {
   return meaning(args);
 });
 
-var l0 = cache(Infer(
-  {method: "rejection", samples: 10},
+var l0 = Infer(
+  {method: "rejection", samples: 5},
   function() {
     // var rs = Infer({method: "enumerate"}, function() {
     var w = statePrior();
@@ -457,10 +459,10 @@ var l0 = cache(Infer(
       ["cf_type_conclusion", cf_type_conclusion]
     ]));
   }
-));
+);
 
 var animate_results = function(r) {
-  if (r.meaning > 0.7) {
+  if (r.meaning > 0.9) {
     displayObj(r);
     animate(r);
   }
@@ -478,12 +480,23 @@ map(animate_results, l0.support());
 // // var w = statePrior();
 // animate(w);
 
-// // // physics.animate(300, physicsify_world(w));
+// // // // physics.animate(300, physicsify_world(w));
 // var collision_world = {
 //   objects: ["A", "B"],
 //   positions: {A: {x: 0, y: 0}, B: {x: 1, y: 0}},
 //   velocities: {A: {x: 1, y: 0}, B: {x: 0, y: 0}},
 // };
+// var cf_type_premise = "whether";
+// var cf_type_conclusion = "whether";
+// var m = cached_meaning(JSON.stringify({
+//   utterance: "A moved B",
+//   target_world: collision_world,
+//   cf_type_premise: cf_type_premise,
+//   cf_type_conclusion: cf_type_conclusion
+// }));
+// display(m);
+// animate(collision_world);
+
 // animate(collision_world);
 // // displayObj(unphysicsify_world(
 // //   physics.run(300, physicsify_world(collision_world))));
