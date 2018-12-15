@@ -51,3 +51,10 @@ utils.finish("label_for_files");
 ```
 
 The input to this function is the name of the `.js` and `.html` files. So, e.g. `example.html` was generated with `utils.finish("example")`.
+
+## TODO
+
+* [ ] recreate 2D billiard balls
+* [ ] add a billiard ball: A, B, and E
+* [ ] model edge cases
+* [ ] model Tobi's experiments
