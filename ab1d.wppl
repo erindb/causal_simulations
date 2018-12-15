@@ -1,0 +1,85 @@
+// webppl ab1d.wppl --require utils
+
+// CONSTANTS
+var STICKINESS = 0.9;
+
+// WORLD PRIOR
+var objects = ["A", "B"];
+
+var object_map = function(f, objects) {
+	return _.fromPairs(map(function(obj) {
+		return [obj, f(obj)];
+	}, objects));
+}
+var positions_prior = function() {
+	return uniformDraw(["AB", "BA"]);
+}
+var place_object = function(positions, obj) {
+	if (positions=="AB") {
+		return (obj=="A" ? 1 : 0);
+	} else if (positions=="BA") {
+		return (obj=="B" ? 1 : 0);
+	} else {
+		display("invalid input for `positions`: " + positions);
+	}
+}
+var velocity_prior = function() {
+	return randomInteger(2);
+}
+var velocities_prior = function() {
+	return _.fromPairs(map(function(obj) {
+		return [obj, velocity_prior()];
+	}, objects));
+}
+var world_prior = function() {
+	var velocities = velocities_prior();
+	var positions = positions_prior();
+	return object_map(function(obj) {
+		return {
+			velocity: velocities[obj],
+			position: place_object(positions, obj)
+		};
+	}, objects);
+}
+
+// // COUNTERFACTUAL WORLD PRIOR
+// var cf_prior = function(w) {
+// 	var objects = _.keys(w);
+// 	var keep_positions = flip(STICKINESS);
+// 	var positions = keep_positions ? "NA" : 
+// 	return object_map(function(obj) {}, objects);
+// }
+
+var factor_meaning = function(m) {
+	factor(Math.log(m));
+}
+
+var meaning = function(utterance) {
+	if (utterance == "silence") {
+		return 1;
+	} else {
+		display("no meaning registered for " + utterance);
+	}
+}
+
+var l0 = function(utterance) {
+	return Infer({method: "enumerate"}, function() {
+		var w = world_prior();
+		var m = meaning(utterance);
+		factor_meaning(m);
+		return w;
+	})
+}
+
+// var utterance = "silence";
+
+// map(function(w) {
+// 	utils.write(w, "l0(silence)");
+// }, l0("silence").support());
+
+// // writes all worlds to viewable files
+// utils.finish("l0_enumeration_" + utterance);
+
+var w = world_prior();
+utils.write(w, "sample from world prior");
+utils.finish("example");
