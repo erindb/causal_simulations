@@ -54,7 +54,7 @@ var place_object = function(positions, obj) {
   }
 }
 var velocity_prior = function() {
-  return randomInteger(2);
+  return uniformDraw([0, 0.5, 1]);
 }
 var velocities_prior = function() {
   return _.fromPairs(map(function(obj) {
@@ -102,7 +102,7 @@ var all_true = function(meanings) {
 var counterfactual = function(args) {
   // how often is the conclusion true when the premise is?
   var cf = Infer(
-    {method: "rejection", samples: 50},
+    {method: "enumerate"},
     function() {
       var shadow_w = shadowStatePrior(args.target_world);
       // i.e. condition on truth of premise.
@@ -117,6 +117,18 @@ var counterfactual = function(args) {
       factor_meaning(premise);
       // return whether or not conclusion is true
       // conclusion is on *final conditions*
+      // display({
+      //   utterance: args.conclusion,
+      //   target_world: shadow_w,
+      //   timing: "final",
+      //   counterfactual_world: args.target_world
+      // });
+      // display(meaning({
+      //   utterance: args.conclusion,
+      //   target_world: shadow_w,
+      //   timing: "final",
+      //   counterfactual_world: args.target_world
+      // }));
       var conclusion = meaning({
         utterance: args.conclusion,
         target_world: shadow_w,
@@ -190,7 +202,7 @@ var moved_differently = function(w, obj, shadow_w, timing) {
   var relevant_world = timing=="initial" ? shadow_w : utils.run_physics(shadow_w);
   var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
   // velocity for obj is different between world and original world
-  return relevant_world[obj].velocity != relevant_original_world[obj].velocity;
+  return true & (relevant_world[obj].velocity != relevant_original_world[obj].velocity);
 };
 
 var meaning = function(args) {
@@ -245,13 +257,31 @@ var cached_meaning = cache(function(arg_string) {
 
 var sample_cf_type = function() {
   return uniformDraw(["how", "whether"]);
-//   return "how";
+  // return "how";
 }
 
-var l0 = function(utterance) {
-  return Infer({method: "enumerate"}, function() {
-    var cf_type_premise = sample_cf_type();
-    var cf_type_conclusion = sample_cf_type();
+var safe_infer = function(args, f) {
+  var erp = Infer(args, f);
+  var possible = reduce(function(x, acc) {
+    if (x.prob > 0) {
+      return true;
+    } else {
+      return acc;
+    }
+  }, false, erp.support());
+  if (possible) {
+    return Infer(args, function() {
+      var x = sample(erp);
+      factor(Math.log(x.prob));
+      return x.result;
+    });
+  } else {
+    return "Impossible";
+  }
+};
+
+var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
+  return safe_infer({method: "enumerate"}, function() {
     var w = world_prior();
     var m = meaning({
       utterance: utterance,
@@ -259,26 +289,70 @@ var l0 = function(utterance) {
       cf_type_premise: cf_type_premise,
       cf_type_conclusion: cf_type_conclusion
     });
-    factor_meaning(m);
-    return extend(w, _.fromPairs([
-      ["meaning", m],
-      ["cf_type_premise", cf_type_premise],
-      ["cf_type_conclusion", cf_type_conclusion]
-    ]));
+    // factor_meaning(m);
+    return {prob: m, result: w};
+  });
+});
+
+var utteranePrior = function() {
+  return uniformDraw(["A moved B", "silence"]);
+}
+
+var s1 = cache(function(w) {
+  return Infer({method: "enumerate"}, function() {
+    var cf_type_premise = sample_cf_type();
+    var cf_type_conclusion = sample_cf_type();
+    var utterance = utteranePrior();
+    var interpretation = l0(utterance, cf_type_premise, cf_type_conclusion);
+    if (interpretation == "Impossible") {
+      factor(-Infinity);
+    } else {
+      factor(interpretation.score(w));
+    }
+    return {
+      utterance: utterance,
+      cf_type_premise: cf_type_premise,
+      cf_type_conclusion: cf_type_conclusion
+    }
+  });
+});
+
+var marginal = function(erp) {
+  return Infer({method: "enumerate"}, function() {
+    var x = sample(erp);
+    return x.utterance;
   });
 }
 
-// var s1 = function(w) {
-//   return Infer({method: "enumerate"}, function() {
-//     var utterance = utter
-//   });
-// }
+// display(moved_differently(
+//   {A: {velocity: 0.5, position: 0}, B: {velocity: 0, position: 1}},
+//   "A",
+//   {A: {velocity: 1, position: 0}, B: {velocity: 0, position: 1}},
+//   "initial"
+// ));
+
+// display(moved_differently(
+//   {A: {velocity: 0.5, position: 0}, B: {velocity: 0, position: 1}},
+//   "B",
+//   {A: {velocity: 1, position: 0}, B: {velocity: 0, position: 1}},
+//   "final"
+// ));
+
+// utils.write({A: {velocity: 0.5, position: 0}, B: {velocity: 0, position: 1}});
+// utils.finish("tmp");
 
 var utterance = "A moved B";
 
-map(function(w) {
- utils.write(w, "l0(" + utterance + ")");
-}, l0(utterance).support());
+var unique_worlds = l0("silence", "how", "how").support();
+
+display(map(function(w) {
+  // display(marginal(s1(w)));
+  var endorsement = Math.exp(marginal(s1(w)).score(utterance));
+  if (endorsement > 0.3) {
+    utils.write(w, "probability of 'A moved B': " + endorsement);
+  }
+  return endorsement;
+}, unique_worlds));
 
 // writes all worlds to viewable files
-utils.finish("l0_enumeration_" + utterance);
+utils.finish("s1_enumeration_" + utterance);
