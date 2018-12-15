@@ -54,7 +54,7 @@ var place_object = function(positions, obj) {
   }
 }
 var velocity_prior = function() {
-  return uniformDraw([0, 0.5, 1]);
+  return uniformDraw([-0.1, 0, 0.5, 1]);
 }
 var velocities_prior = function() {
   return _.fromPairs(map(function(obj) {
@@ -117,18 +117,6 @@ var counterfactual = function(args) {
       factor_meaning(premise);
       // return whether or not conclusion is true
       // conclusion is on *final conditions*
-      // display({
-      //   utterance: args.conclusion,
-      //   target_world: shadow_w,
-      //   timing: "final",
-      //   counterfactual_world: args.target_world
-      // });
-      // display(meaning({
-      //   utterance: args.conclusion,
-      //   target_world: shadow_w,
-      //   timing: "final",
-      //   counterfactual_world: args.target_world
-      // }));
       var conclusion = meaning({
         utterance: args.conclusion,
         target_world: shadow_w,
@@ -324,23 +312,6 @@ var marginal = function(erp) {
   });
 }
 
-// display(moved_differently(
-//   {A: {velocity: 0.5, position: 0}, B: {velocity: 0, position: 1}},
-//   "A",
-//   {A: {velocity: 1, position: 0}, B: {velocity: 0, position: 1}},
-//   "initial"
-// ));
-
-// display(moved_differently(
-//   {A: {velocity: 0.5, position: 0}, B: {velocity: 0, position: 1}},
-//   "B",
-//   {A: {velocity: 1, position: 0}, B: {velocity: 0, position: 1}},
-//   "final"
-// ));
-
-// utils.write({A: {velocity: 0.5, position: 0}, B: {velocity: 0, position: 1}});
-// utils.finish("tmp");
-
 var utterance = "A moved B";
 
 var unique_worlds = l0("silence", "how", "how").support();
@@ -348,7 +319,7 @@ var unique_worlds = l0("silence", "how", "how").support();
 display(map(function(w) {
   // display(marginal(s1(w)));
   var endorsement = Math.exp(marginal(s1(w)).score(utterance));
-  if (endorsement > 0.3) {
+  if (endorsement > 0.5) {
     utils.write(w, "probability of 'A moved B': " + endorsement);
   }
   return endorsement;

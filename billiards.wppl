@@ -10,23 +10,23 @@ TODO:
   samping close exogenous randomness
 - ☑ write physics simulator run_physics
 - ☑ animate worlds
-- write L0 and view worlds it chooses
-- hope that a bunch of these involve A hitting B.
-- write S1 and evaluate on:
+- ☑ write L0 and view worlds it chooses
+- ☑ hope that a bunch of these involve A hitting B.
+- ☑ write S1 and evaluate on:
     - A hits B
-        - and B was still ==> YES
-        - and B was moving in different direction ==> YES
-        - and B was moving in same direction ==> ???
-        - and B was moving in opposite direction ==> ???
+        - ☑ and B was still ==> YES
+        - NA and B was moving in different direction ==> YES
+        - ☑ and B was moving in same direction ==> ???
+        - KIND OF and B was moving in opposite direction ==> ???
     - B hits A
         - and A was still ==> ???
         - and A was moving in different direction ==> ???
         - and A was moving in same direction ==> ???
         - and A was moving in opposite direction ==> ???
     - A and B do not collide
-        - and both are moving ==> NO
-        - and A is moving, B is still ==> NO
-        - and A is still, B is moving ==> NO
+        - ☑ and both are moving ==> NO
+        - ☑ and A is moving, B is still ==> NO
+        - ☑and A is still, B is moving ==> NO
 - extend to 3 objects, A, B, and E
 - evaluate S1 on:
     - overdetermination
