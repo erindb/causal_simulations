@@ -1,0 +1,487 @@
+[
+	{
+		"trial": 0,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					950,
+					320
+				],
+				"velocity": [
+					-1.1,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					300
+				],
+				"velocity": [
+					-1,
+					0
+				]
+			}
+		]
+	},
+	{
+		"trial": 1,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					200,
+					359
+				],
+				"velocity": [
+					0,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					300
+				],
+				"velocity": [
+					-1.2,
+					0
+				]
+			}
+		]
+	},
+	{
+		"trial": 2,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					1400,
+					300
+				],
+				"velocity": [
+					-1.75,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					150
+				],
+				"velocity": [
+					-1,
+					0.20
+				]
+			}
+		]
+	},
+	{
+		"trial": 3,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					1500,
+					300
+				],
+				"velocity": [
+					-2,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					300
+				],
+				"velocity": [
+					-1,
+					0
+				]
+			}
+		]
+	},
+	{
+		"trial": 4,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					2100,
+					500
+				],
+				"velocity": [
+					-3,
+					-0.3
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					200
+				],
+				"velocity": [
+					-1.1,
+					0.15
+				]
+			}
+		]
+	},
+	{
+		"trial": 5,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					2400,
+					300
+				],
+				"velocity": [
+					-4,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					300
+				],
+				"velocity": [
+					-1,
+					0
+				]
+			}
+		]
+	},
+	{
+		"trial": 6,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					350,
+					345
+				],
+				"velocity": [
+					0,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					150
+				],
+				"velocity": [
+					-1,
+					0.28
+				]
+			}
+		]
+	},
+	{
+		"trial": 7,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					900,
+					220
+				],
+				"velocity": [
+					-1.1,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					450
+				],
+				"velocity": [
+					-1,
+					-0.28
+				]
+			}
+		]
+	},
+	{
+		"trial": 8,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					1150,
+					260
+				],
+				"velocity": [
+					-1.5,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					450
+				],
+				"velocity": [
+					-1,
+					-0.28
+				]
+			}
+		]
+	},
+	{
+		"trial": 9,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					280,
+					358
+				],
+				"velocity": [
+					0,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					150
+				],
+				"velocity": [
+					-1,
+					0.28
+				]
+			}
+		]
+	},
+	{
+		"trial": 10,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					2900,
+					250
+				],
+				"velocity": [
+					-4,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					450
+				],
+				"velocity": [
+					-1,
+					-0.28
+				]
+			}
+		]
+	},
+	{
+		"trial": 11,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					2100,
+					480
+				],
+				"velocity": [
+					-3,
+					-0.2
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					150
+				],
+				"velocity": [
+					-1,
+					0.29
+				]
+			}
+		]
+	},
+	{
+		"trial": 12,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					200,
+					147
+				],
+				"velocity": [
+					0,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					300
+				],
+				"velocity": [
+					-1,
+					-0.15
+				]
+			}
+		]
+	},
+	{
+		"trial": 13,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					970,
+					460
+				],
+				"velocity": [
+					-1.3,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					430
+				],
+				"velocity": [
+					-1,
+					0
+				]
+			}
+		]
+	},
+	{
+		"trial": 14,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					1150,
+					350
+				],
+				"velocity": [
+					-1.7,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					150
+				],
+				"velocity": [
+					-1,
+					0.45
+				]
+			}
+		]
+	},
+	{
+		"trial": 15,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					335,
+					150
+				],
+				"velocity": [
+					0,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					830,
+					400
+				],
+				"velocity": [
+					-1,
+					-0.4
+				]
+			}
+		]
+	},
+	{
+		"trial": 16,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					830,
+					300
+				],
+				"velocity": [
+					-1,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					300,
+					300
+				],
+				"velocity": [
+					0,
+					0
+				]
+			}
+		]
+	},
+	{
+		"trial": 17,
+		"balls": [
+			{
+				"name": "A",
+				"position": [
+					895,
+					275
+				],
+				"velocity": [
+					-1,
+					0
+				]
+			},
+			{
+				"name": "B",
+				"position": [
+					345,
+					550
+				],
+				"velocity": [
+					0,
+					-0.5]
+			}
+		]
+	}
+]

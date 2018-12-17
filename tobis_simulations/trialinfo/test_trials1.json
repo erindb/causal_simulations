@@ -1,0 +1,57 @@
+[
+  {
+    "trial": 1,
+    "balls": [
+	  {"name": "W",
+	    "position": [
+		  830,
+		  300
+		],
+		"velocity": [
+		  -1,
+		  0
+		]
+	  },
+	  {"name": "X",
+	    "position": [
+	      680,
+	  	  300
+	  	],
+		"velocity": [
+		  0,
+		  0
+		]
+	  },
+	  {"name": "Y",
+	    "position": [
+	      530,
+	      300
+	    ],
+		"velocity": [
+		  0,
+		  0
+		]
+	  },
+	  {"name": "Z",
+	    "position": [
+	      380,
+	  	  300
+	  	],
+		"velocity": [
+		  0,
+		  0
+		]
+	  },
+	  {"name": "B",
+	    "position": [
+	      230,
+	  	  300
+	  	],
+		"velocity": [
+		  0,
+		  0
+		]
+	  }  
+    ]
+  }
+]
