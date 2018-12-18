@@ -1,0 +1,66 @@
+---
+title: "Logical vs. Conditional IF"
+author: "Erin"
+date: "12/17/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message=F, warning=F)
+```
+
+```{r load libraries}
+library(rwebppl)
+library(tidyverse)
+library(ggrepel)
+library(ggthemes)
+library(rjson)
+char = as.character
+num = function(x) {return(as.numeric(char(x)))}
+```
+
+The counterfactual in the explanation contains an IF statement:
+
+> IF [premise hadn't happened] THEN [conclusion wouldn't have happened].
+
+This IF could be a conditional statement with a nested inference. In this case, we would sample an actual world and its parameters, then compute counterfactual probabilities for that world in particular.
+
+The IF could also just be a logical IF, that is "Either [premise didn't happen] or [conclusion did happen]". Logical IF is easier to to inference on, since it only involves a single counterfactual sample.
+
+I looked at this before and didn't see much of a difference. Now I'm checking in a very simple, discrete case, where I can enumerate.
+
+```{r load results}
+load_results = function(IF) {
+  logical_file=paste("../results/s1_enumeration_", IF, "IF_A moved B.js", sep="")
+  logical_json = fromJSON(
+    substring(read_file(logical_file), first=15))
+  sapply(logical_json, function(x) {
+    return(strsplit(x$label, "\t")[[1]])
+  }) %>% t %>% as.data.frame() %>%
+    rename(label = V1, endorsement = V2) %>%
+    mutate(endorsement = num(endorsement),
+           IF = IF)
+}
+# webppl ab1d_discrete_logicalIF.wppl --require ../node_modules/utils --results_dir ../results/ --modules_dir ../node_modules/
+logical = load_results("logical")
+# webppl ab1d_discrete_conditionalIF.wppl --require ../node_modules/utils --results_dir ../results/ --modules_dir ../node_modules/
+conditional = load_results("conditional")
+df = rbind(logical, conditional) %>%
+  spread(IF, endorsement)
+```
+
+In the 1D, 2 ball, discrete world prior, logical IF does worse than conditional IF at matching intution. The conditional IF version rates the two collision events higher than the logical IF rates them. The logical IF version thinks that moving in opposite directions is a lot better described by "A moved B" than conditional IF version thinks. But both rank the collision where A hits a stationary B as the situation best described by "A moved B", and the results of the two versions are correlated ($R^2=`r round(with(df, cor(logical, conditional)^2), 2)`$).
+
+```{r, fig.width=5, fig.height=3}
+df %>%
+  ggplot() +
+  aes(x=conditional, y=logical, label=label) +
+  geom_point() +
+  geom_text_repel() +
+  geom_abline(slope = 1, intercept = 0) +
+  ylab("logical IF rating (S1)") +
+  xlab("conditional IF rating (S1)") +
+  theme_few()
+ggsave("conditional_vs_logical.png", width=5, height=3)
+```
+
