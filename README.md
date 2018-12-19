@@ -54,7 +54,27 @@ The input to this function is the name of the `.js` and `.html` files. So, e.g. 
 
 ## TODO
 
-* [ ] recreate 2D billiard balls
-* [ ] add a billiard ball: A, B, and E
-* [ ] model edge cases
-* [ ] model Tobi's experiments
+### Extend to continuous velocities and positions
+
+* [ ] change 1D world prior to continuous positions and velocities
+
+### Compare to Tobi's 2-ball experiments
+
+* [ ] find paper
+* [ ] run tobi's code to get videos for `2ball_trials.json`
+* [ ] implement 2d discrete version of world prior with a gate and walls s.t. it matches the setup of tobi's worlds, including physics params
+* [ ] add existence of ball A and existence of ball B as variables in the world prior
+* [ ] change tobi-version world prior to continuous positions and velocities
+* [ ] think about noisy physics
+* [ ] preregister or something? ;)
+* [ ] get data from Tobi
+* [ ] compare ratings of "A caused B to go through the gate" for tobi's experiments to S1
+
+### Compare to Tobi's 3-ball experiments?
+
+* [ ] find paper
+* [ ] 2D, balls A, B, and E, and a gate (and walls?)
+
+### Conversion to pyro?
+
+* [ ] think about whether this is useful
