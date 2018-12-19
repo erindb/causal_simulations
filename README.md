@@ -60,7 +60,6 @@ The input to this function is the name of the `.js` and `.html` files. So, e.g. 
 
 ### Compare to Tobi's 2-ball experiments
 
-* [ ] find paper
 * [ ] run tobi's code to get videos for `2ball_trials.json`
 * [ ] implement 2d discrete version of world prior with a gate and walls s.t. it matches the setup of tobi's worlds, including physics params
 * [ ] add existence of ball A and existence of ball B as variables in the world prior
