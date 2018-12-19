@@ -1,4 +1,4 @@
-// webppl ab1d_discrete_logicalIF.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+// time webppl ab1d_discrete_shallow.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
 
 // more utils
@@ -137,6 +137,7 @@ var counterfactual = function(args) {
     // input true world as the "counterfactual" now
     counterfactual_world: args.target_world
   });
+  // shallow factor, on same inference level as actual world
   factor_meaning(premise);
   // return whether or not conclusion is true
   // conclusion is on *final conditions*
@@ -364,4 +365,4 @@ map(function(example) {
 ]);
 
 // writes all worlds to viewable files
-utils.finish("s1_enumeration_logicalIF_" + utterance);
+utils.finish("ab1d_discrete_shallow_" + utterance);

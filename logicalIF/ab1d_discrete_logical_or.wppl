@@ -1,4 +1,4 @@
-// webppl ab1d.wppl --require utils
+// webppl ab1d_discrete_logical_or.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
 
 // more utils
@@ -122,44 +122,40 @@ var all_true = function(meanings) {
   }, 1, meanings);
 };
 
+// LOGICAL IF
+//
+//     A    B    A=>B !A   !A or B
+//     T    T    T    F    T
+//     T    F    F    F    F
+//     F    T    T    T    T
+//     F    F    T    T    T
 // if premise had been the case,
 // then conclusion would have been the case
 var counterfactual = function(args) {
-  // how often is the conclusion true when the premise is?
-  var cf = safe_infer(
-    {method: "enumerate"},
-    function() {
-      var shadow_w = shadowStatePrior(args.target_world);
-      // i.e. condition on truth of premise.
-      // premise is on *initial conditions*
-      var premise = meaning({
-        utterance: args.premise,
-        target_world: shadow_w,
-        timing: "initial",
-        // input true world as the "counterfactual" now
-        counterfactual_world: args.target_world
-      });
-      // factor_meaning(premise);
-      // return whether or not conclusion is true
-      // conclusion is on *final conditions*
-      var conclusion = meaning({
-        utterance: args.conclusion,
-        target_world: shadow_w,
-        timing: "final",
-        counterfactual_world: args.target_world
-      });
-      return {
-        prob: premise,
-        result: conclusion
-      };
-    }
-  );
-  if (cf == "Impossible") {
-    return 0;
-  } else {
-    var scr = cf.score(1);
-    return (scr > -Infinity) ? Math.exp(scr) : 0;
-  }
+  // is the conclusion true when the premise is?
+  var shadow_w = shadowStatePrior(args.target_world);
+  // i.e. condition on truth of premise.
+  // premise is on *initial conditions*
+  var premise = meaning({
+    utterance: args.premise,
+    target_world: shadow_w,
+    timing: "initial",
+    // input true world as the "counterfactual" now
+    counterfactual_world: args.target_world
+  });
+  // factor_meaning(premise);
+  // return whether or not conclusion is true
+  // conclusion is on *final conditions*
+  var conclusion = meaning({
+    utterance: args.conclusion,
+    target_world: shadow_w,
+    timing: "final",
+    counterfactual_world: args.target_world
+  });
+  // premise is false (1-premise)
+  // or else conclusion is true
+  display((1-premise) | conclusion);
+  return (1-premise) | conclusion;
 };
 
 var disambiguate = function(utterance, cf_version) {
@@ -330,8 +326,6 @@ var marginal = function(erp) {
   });
 }
 
-
-
 var utterance = "A moved B";
 
 map(function(example) {
@@ -379,4 +373,4 @@ map(function(example) {
 ]);
 
 // writes all worlds to viewable files
-utils.finish("s1_enumeration_conditionalIF_" + utterance);
+utils.finish("ab1d_discrete_logical_or_" + utterance);

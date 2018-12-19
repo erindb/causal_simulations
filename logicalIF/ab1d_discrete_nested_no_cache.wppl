@@ -1,0 +1,386 @@
+// time webppl ab1d_discrete_nested_no_cache.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+
+// more utils
+// TODO move these to actual utils pkg?
+var foreach = function(lst, fn) {
+    var foreach_ = function(i) {
+        if (i < lst.length) {
+            fn(lst[i]);
+            foreach_(i + 1);
+        }
+    };
+    foreach_(0);
+};
+var displayObj = function(x) {
+  display(JSON.stringify(x, undefined, 2));
+};
+var discretizedUniform = function(a, b, nbins) {
+  var width = b-a;
+  var width_per_step = width/(nbins-1);
+  return randomInteger(nbins)*width_per_step + a;
+};
+var factor_meaning = function(meaning) {
+  factor(Math.log(meaning));
+};
+var clone = function(x) {
+  return JSON.parse(JSON.stringify(x));
+};
+var extend = function(a, b) {
+  return _.extend(clone(a), b);
+};
+var safe_infer = function(args, f) {
+  var erp = Infer(args, f);
+  var possible = reduce(function(x, acc) {
+    if (x.prob > 0 || x.factor > -Infinity) {
+        return true;
+      }
+    return acc;
+  }, false, erp.support());
+  if (possible) {
+    return Infer(args, function() {
+      var x = sample(erp);
+      if (x.prob != null) {
+        factor(Math.log(x.prob));
+      } else if (x.factor != null) {
+        factor(x.factor);
+      }
+      return x.result;
+    });
+  } else {
+    return "Impossible";
+  }
+};
+
+// CONSTANTS
+var STICKINESS = 0.9;
+
+// WORLD PRIOR
+var objects = ["A", "B"];
+
+var object_map = function(f, objects) {
+  return _.fromPairs(map(function(obj) {
+    return [obj, f(obj)];
+  }, objects));
+}
+var positions_prior = function() {
+  return uniformDraw(["AB", "BA"]);
+}
+var place_object = function(positions, obj) {
+  if (positions=="AB") {
+    return (obj=="A" ? 1 : 0);
+  } else if (positions=="BA") {
+    return (obj=="B" ? 1 : 0);
+  } else {
+    display("invalid input for `positions`: " + positions);
+  }
+}
+var velocity_prior = function() {
+  return uniformDraw([-1, 0, 1]);
+}
+var velocities_prior = function() {
+  return _.fromPairs(map(function(obj) {
+    return [obj, velocity_prior()];
+  }, objects));
+}
+var world_prior = function() {
+  var velocities = velocities_prior();
+  var positions = positions_prior();
+  return object_map(function(obj) {
+    return {
+      velocity: velocities[obj],
+      position: place_object(positions, obj)
+    };
+  }, objects);
+}
+
+// COUNTERFACTUAL WORLD PRIOR
+
+var shadowStatePrior = function(w) {
+  var keep_position = flip(STICKINESS);
+  var positions = keep_position ? "NA" : positions_prior();
+  return object_map(function(obj) {
+    var keep_velocity = flip(STICKINESS);
+    var new_velocity = velocity_prior();
+    // factor(-Math.abs(w[obj].velocity - new_velocity));
+    return {
+      velocity: keep_velocity ? w[obj].velocity : new_velocity,
+      position: keep_position ? w[obj].position : place_object(positions, obj)
+    };
+  }, objects);
+
+};
+
+
+
+// MEANINGS
+
+var all_true = function(meanings) {
+  // display(meanings);
+  return reduce(function(meaning, acc) {
+    return acc * meaning;
+  }, 1, meanings);
+};
+
+// if premise had been the case,
+// then conclusion would have been the case
+var counterfactual = function(args) {
+  // how often is the conclusion true when the premise is?
+  var cf = safe_infer(
+    {method: "enumerate"},
+    function() {
+      var shadow_w = shadowStatePrior(args.target_world);
+      // i.e. condition on truth of premise.
+      // premise is on *initial conditions*
+      var premise = meaning({
+        utterance: args.premise,
+        target_world: shadow_w,
+        timing: "initial",
+        // input true world as the "counterfactual" now
+        counterfactual_world: args.target_world
+      });
+      // factor_meaning(premise);
+      // return whether or not conclusion is true
+      // conclusion is on *final conditions*
+      var conclusion = meaning({
+        utterance: args.conclusion,
+        target_world: shadow_w,
+        timing: "final",
+        counterfactual_world: args.target_world
+      });
+      return {
+        prob: premise,
+        result: conclusion
+      };
+    }
+  );
+  if (cf == "Impossible") {
+    return 0;
+  } else {
+    var scr = cf.score(1);
+    return (scr > -Infinity) ? Math.exp(scr) : 0;
+  }
+};
+
+var cached_counterfactual = cache(function(argstring) {
+  counterfactual(JSON.parse(argstring));
+});
+
+var disambiguate = function(utterance, cf_version) {
+  if (utterance == "A moved" || utterance == "B moved") {
+    if (cf_version == "how") {
+      return utterance + " differently";
+    } else if (cf_version == "whether") {
+      return "not " + utterance;
+    } else {
+      display("error 2130498");
+    }
+  } else {
+    return utterance;
+  }
+};
+
+// "A moved", "B moved", w, cf_version, shadow_w
+var explanation = function(args) {
+  var disambiguated_premise = disambiguate(args.explanans, args.cf_type_premise);
+  var disambiguated_conclusion = disambiguate(args.explanandum, args.cf_type_conclusion);
+  return all_true([
+    // explanans is true of the actual world
+    meaning({
+      utterance: args.explanans,
+      target_world: args.target_world,
+      timing: "initial"
+    }),
+    // explanandum is true of the actual world
+    meaning({
+      utterance: args.explanandum,
+      target_world: args.target_world,
+      timing: "final"
+    }),
+    // counterfactually, if not explanans, then not explanandum.
+    counterfactual({
+      premise: disambiguated_premise,
+      conclusion: disambiguated_conclusion,
+      target_world: args.target_world
+    })
+  ]);
+};
+
+var moved = function(w, obj, timing) {
+  var moved_at_start = w[obj].velocity != 0;
+  if (timing == "initial") {
+    return moved_at_start;
+  } else {
+    var w_final = utils.run_physics(w);
+    var moved_at_end = w_final[obj].velocity != 0;
+    if (timing == "final") {
+      return moved_at_end;
+    } else {
+      // if no timing specified, then any movement counts
+      return moved_at_start | moved_at_end;
+    }
+  }
+};
+
+var moved_differently = function(w, obj, shadow_w, timing) {
+  var relevant_world = timing=="initial" ? shadow_w : utils.run_physics(shadow_w);
+  var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
+  // velocity for obj is different between world and original world
+  var object_moved_differently = (relevant_world[obj].velocity !=
+    relevant_original_world[obj].velocity);
+  var object_moved_at_all = (relevant_world[obj].velocity != 0);
+  return object_moved_at_all & object_moved_differently;
+
+};
+
+var meaning = function(args) {
+//   display(args.utterance);
+  if (args.utterance == "silence") {
+    return 1;
+  } else if (args.utterance == "A moved B") {
+    // A moved B ==>
+    // A (exists|moved).
+    // B moved.
+    // If A had not (existed/moved), then B would not have moved.
+    return explanation({
+      explanans: "A moved",
+      explanandum: "B moved",
+      target_world: args.target_world,
+      counterfactual_type: args.counterfactual_type,
+      cf_type_premise: args.cf_type_premise,
+      cf_type_conclusion: args.cf_type_conclusion
+    });
+//   } else if (utterance == "A" || utterance == "B") {
+//     return meaning(disambiguate(utterance, cf_version), w, timing);
+  } else if (args.utterance == "A moved") {
+    // A moved entails that A existed
+    // (TODO: should this be a presupposition?)
+    return moved(args.target_world, "A", args.timing);
+  } else if (args.utterance == "B moved") {
+    // B moved entails that B existed
+    // (TODO: should this be a presupposition?)
+    return moved(args.target_world, "B", args.timing);
+  } else if (args.utterance == "A moved differently") {
+    return moved_differently(args.target_world, "A", args.counterfactual_world, args.timing);
+  } else if (args.utterance == "B moved differently") {
+    return moved_differently(args.target_world, "B", args.counterfactual_world, args.timing);
+  } else if (args.utterance.slice(0, 3) == "not") {
+    return 1 - meaning({
+      utterance: args.utterance.slice(4, args.utterance.length),
+      target_world: args.target_world,
+      timing: args.timing,
+      counterfactual_type: args.counterfactual_type,
+      counterfactual_world: args.counterfactual_world
+    });
+  } else {
+    display("no meaning registered for utterance: " + utterance);
+  }
+};
+
+var cached_meaning = cache(function(arg_string) {
+  var args = JSON.parse(arg_string);
+  return meaning(args);
+});
+
+
+var sample_cf_type = function() {
+  return uniformDraw(["how", "whether"]);
+  // return "how";
+}
+
+var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
+  return safe_infer({method: "enumerate"}, function() {
+    var w = world_prior();
+    var m = meaning({
+      utterance: utterance,
+      target_world: w,
+      cf_type_premise: cf_type_premise,
+      cf_type_conclusion: cf_type_conclusion
+    });
+    // factor_meaning(m);
+    return {prob: m, result: w};
+  });
+});
+
+var utteranePrior = function() {
+  return uniformDraw(["A moved B", "silence"]);
+}
+
+var s1 = cache(function(w) {
+  return safe_infer({method: "enumerate"}, function() {
+    var cf_type_premise = sample_cf_type();
+    var cf_type_conclusion = sample_cf_type();
+    var utterance = utteranePrior();
+    var interpretation = l0(utterance, cf_type_premise, cf_type_conclusion);
+    var factor = (interpretation == "Impossible" ?
+      -Infinity :
+      interpretation.score(w)
+    );
+    return {
+      factor: factor,
+      result: {
+        utterance: utterance,
+        cf_type_premise: cf_type_premise,
+        cf_type_conclusion: cf_type_conclusion
+      }
+    }
+  });
+});
+
+var marginal = function(erp) {
+  return Infer({method: "enumerate"}, function() {
+    var x = sample(erp);
+    return x.utterance;
+  });
+}
+
+
+
+var utterance = "A moved B";
+
+map(function(example) {
+  var w = example.world;
+  var label = example.label;
+  var endorsement = Math.exp(marginal(s1(w)).score(utterance));
+  utils.write(w, (label + "\t" + endorsement));
+  return extend(example, {"endorsement": endorsement});
+}, [
+  {
+    world: {
+      A: {velocity: 1, position: 0},
+      B: {velocity: 0, position: 1}
+    },
+    label: "A hits B"
+  },
+  {
+    world: {
+      A: {velocity: 1, position: 0},
+      B: {velocity: -1, position: 1}
+    },
+    label: "symmetric collision"
+  },
+  {
+    world: {
+      A: {velocity: 1, position: 0},
+      B: {velocity: 1, position: 1}
+    },
+    label: "A follows B"
+  },
+  {
+    world: {
+      A: {velocity: -1, position: 0},
+      B: {velocity: 1, position: 1}
+    },
+    label: "moving opposite dirs"
+  },
+  {
+    world: {
+      A: {velocity: -1, position: 0},
+      B: {velocity: -1, position: 1}
+    },
+    label: "B follows A"
+  }
+]);
+
+// writes all worlds to viewable files
+utils.finish("ab1d_discrete_nested_no_cache_" + utterance);
