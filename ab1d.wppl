@@ -29,9 +29,31 @@ var clone = function(x) {
 var extend = function(a, b) {
   return _.extend(clone(a), b);
 };
+var safe_infer = function(args, f) {
+  var erp = Infer(args, f);
+  var possible = reduce(function(x, acc) {
+    if (x.prob > 0 || x.factor > -Infinity) {
+        return true;
+      }
+    return acc;
+  }, false, erp.support());
+  if (possible) {
+    return Infer(args, function() {
+      var x = sample(erp);
+      if (x.prob != null) {
+        factor(Math.log(x.prob));
+      } else if (x.factor != null) {
+        factor(x.factor);
+      }
+      return x.result;
+    });
+  } else {
+    return "Impossible";
+  }
+};
 
 // CONSTANTS
-var STICKINESS = 0.9;
+var STICKINESS = 0.53;
 
 // WORLD PRIOR
 var objects = ["A", "B"];
@@ -54,7 +76,7 @@ var place_object = function(positions, obj) {
   }
 }
 var velocity_prior = function() {
-  return uniformDraw([-0.1, 0, 0.5, 1]);
+  return uniformDraw([-1, 0, 1]);
 }
 var velocities_prior = function() {
   return _.fromPairs(map(function(obj) {
@@ -78,8 +100,9 @@ var shadowStatePrior = function(w) {
   var keep_position = flip(STICKINESS);
   var positions = keep_position ? "NA" : positions_prior();
   return object_map(function(obj) {
+    var keep_velocity = flip(STICKINESS);
     return {
-      velocity: flip(STICKINESS) ? w[obj].velocity : velocity_prior(),
+      velocity: keep_velocity ? w[obj].velocity : velocity_prior(),
       position: keep_position ? w[obj].position : place_object(positions, obj)
     };
   }, objects);
@@ -101,7 +124,7 @@ var all_true = function(meanings) {
 // then conclusion would have been the case
 var counterfactual = function(args) {
   // how often is the conclusion true when the premise is?
-  var cf = Infer(
+  var cf = safe_infer(
     {method: "enumerate"},
     function() {
       var shadow_w = shadowStatePrior(args.target_world);
@@ -114,7 +137,7 @@ var counterfactual = function(args) {
         // input true world as the "counterfactual" now
         counterfactual_world: args.target_world
       });
-      factor_meaning(premise);
+      // factor_meaning(premise);
       // return whether or not conclusion is true
       // conclusion is on *final conditions*
       var conclusion = meaning({
@@ -123,11 +146,19 @@ var counterfactual = function(args) {
         timing: "final",
         counterfactual_world: args.target_world
       });
-      return conclusion;
+      return {
+        prob: premise,
+        result: conclusion
+      };
     }
   );
-  var scr = cf.score(1);
-  return (scr > -Infinity) ? Math.exp(scr) : 0;
+  if (cf == "Impossible") {
+    return 0;
+  } else {
+    var scr = cf.score(1);
+    return (scr > -Infinity) ? Math.exp(scr) : 0;
+  }
+  return conclusion;
 };
 
 var disambiguate = function(utterance, cf_version) {
@@ -190,7 +221,11 @@ var moved_differently = function(w, obj, shadow_w, timing) {
   var relevant_world = timing=="initial" ? shadow_w : utils.run_physics(shadow_w);
   var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
   // velocity for obj is different between world and original world
-  return true & (relevant_world[obj].velocity != relevant_original_world[obj].velocity);
+  var object_moved_differently = (relevant_world[obj].velocity !=
+    relevant_original_world[obj].velocity);
+  var object_moved_at_all = (relevant_world[obj].velocity != 0);
+  return object_moved_at_all & object_moved_differently;
+
 };
 
 var meaning = function(args) {
@@ -248,26 +283,6 @@ var sample_cf_type = function() {
   // return "how";
 }
 
-var safe_infer = function(args, f) {
-  var erp = Infer(args, f);
-  var possible = reduce(function(x, acc) {
-    if (x.prob > 0) {
-      return true;
-    } else {
-      return acc;
-    }
-  }, false, erp.support());
-  if (possible) {
-    return Infer(args, function() {
-      var x = sample(erp);
-      factor(Math.log(x.prob));
-      return x.result;
-    });
-  } else {
-    return "Impossible";
-  }
-};
-
 var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
   return safe_infer({method: "enumerate"}, function() {
     var w = world_prior();
@@ -287,20 +302,22 @@ var utteranePrior = function() {
 }
 
 var s1 = cache(function(w) {
-  return Infer({method: "enumerate"}, function() {
+  return safe_infer({method: "enumerate"}, function() {
     var cf_type_premise = sample_cf_type();
     var cf_type_conclusion = sample_cf_type();
     var utterance = utteranePrior();
     var interpretation = l0(utterance, cf_type_premise, cf_type_conclusion);
-    if (interpretation == "Impossible") {
-      factor(-Infinity);
-    } else {
-      factor(interpretation.score(w));
-    }
+    var factor = (interpretation == "Impossible" ?
+      -Infinity :
+      interpretation.score(w)
+    );
     return {
-      utterance: utterance,
-      cf_type_premise: cf_type_premise,
-      cf_type_conclusion: cf_type_conclusion
+      factor: factor,
+      result: {
+        utterance: utterance,
+        cf_type_premise: cf_type_premise,
+        cf_type_conclusion: cf_type_conclusion
+      }
     }
   });
 });
@@ -312,6 +329,30 @@ var marginal = function(erp) {
   });
 }
 
+// display(map(function(w) {
+//   var prob = Math.exp(l0("silence", "how", "how").score(w));
+//   utils.write(w, prob);
+//   return prob;
+// }, (l0("silence", "how", "how")).support()));
+
+// display(s1({
+//   A: {
+//     velocity: 1,
+//     position: 0
+//   },
+//   B: {
+//     velocity: 0,
+//     position: 1
+//   }
+// }));
+
+// utils.write(world_prior());
+// utils.write(world_prior());
+// utils.write(world_prior());
+// utils.write(world_prior());
+// utils.write(world_prior());
+// utils.write(world_prior());
+
 var utterance = "A moved B";
 
 var unique_worlds = l0("silence", "how", "how").support();
@@ -319,7 +360,7 @@ var unique_worlds = l0("silence", "how", "how").support();
 display(map(function(w) {
   // display(marginal(s1(w)));
   var endorsement = Math.exp(marginal(s1(w)).score(utterance));
-  if (endorsement > 0.5) {
+  if (endorsement > 0) {
     utils.write(w, "probability of 'A moved B': " + endorsement);
   }
   return endorsement;
@@ -327,3 +368,5 @@ display(map(function(w) {
 
 // writes all worlds to viewable files
 utils.finish("s1_enumeration_" + utterance);
+
+// utils.finish("l0_prior")
