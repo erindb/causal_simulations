@@ -31,36 +31,60 @@ I looked at this before and didn't see much of a difference. Now I'm checking in
 
 ```{r load results}
 load_results = function(IF) {
-  logical_file=paste("../results/s1_enumeration_", IF, "IF_A moved B.js", sep="")
+  logical_file=paste("../results/ab1d_discrete_", IF, "_A moved B.js", sep="")
   logical_json = fromJSON(
     substring(read_file(logical_file), first=15))
   sapply(logical_json, function(x) {
     return(strsplit(x$label, "\t")[[1]])
   }) %>% t %>% as.data.frame() %>%
     rename(label = V1, endorsement = V2) %>%
-    mutate(endorsement = num(endorsement),
+    mutate(endorsement = round(num(endorsement), 6),
            IF = IF)
 }
 # webppl ab1d_discrete_logicalIF.wppl --require ../node_modules/utils --results_dir ../results/ --modules_dir ../node_modules/
-logical = load_results("logical")
-# webppl ab1d_discrete_conditionalIF.wppl --require ../node_modules/utils --results_dir ../results/ --modules_dir ../node_modules/
-conditional = load_results("conditional")
-df = rbind(logical, conditional) %>%
+df = rbind(load_results("nested_cached"), load_results("nested_no_cache"), load_results("logical_or"), load_results("shallow")) %>%
   spread(IF, endorsement)
 ```
 
-In the 1D, 2 ball, discrete world prior, logical IF does worse than conditional IF at matching intution. The conditional IF version rates the two collision events higher than the logical IF rates them. The logical IF version thinks that moving in opposite directions is a lot better described by "A moved B" than conditional IF version thinks. But both rank the collision where A hits a stationary B as the situation best described by "A moved B", and the results of the two versions are correlated ($R^2=`r round(with(df, cor(logical, conditional)^2), 2)`$).
+In the 1D, 2 ball, discrete world prior, logical IF and conditional IF are equivalent.
+
+```{r}
+with(df, mean(nested_cached==nested_no_cache))
+with(df, mean(nested_cached==shallow))
+with(df, mean(nested_cached==logical_or))
+```
+
+I'm not sure why the scaling on logical IF using OR is so weird.
 
 ```{r, fig.width=5, fig.height=3}
 df %>%
   ggplot() +
-  aes(x=conditional, y=logical, label=label) +
+  aes(x=nested_cached, y=logical_or, label=label) +
   geom_point() +
   geom_text_repel() +
   geom_abline(slope = 1, intercept = 0) +
-  ylab("logical IF rating (S1)") +
-  xlab("conditional IF rating (S1)") +
-  theme_few()
+  theme_few() +
+  xlab("Conditional") +
+  ylab("!A || B")
 ggsave("conditional_vs_logical.png", width=5, height=3)
+
 ```
 
+
+```{r, fig.width=5, fig.height=3}
+df %>%
+  ggplot() +
+  aes(x=nested_cached, y=shallow, label=label) +
+  geom_point() +
+  geom_text_repel() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_few() +
+  ylab("Nested Inference") +
+  xlab("Shallow Factor Statement")
+ggsave("shallow_vs_nested.png", width=5, height=3)
+```
+
+shallow counterfactual conditioning takes 0m9.087s
+nested coutnerfactual conditioning with caching takes 0m27.053s
+nested coutnerfactual conditioning without caching takes 0m26.845s
+OR-based IF takes 0m24.242s
