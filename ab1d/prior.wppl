@@ -1,0 +1,9 @@
+// webppl prior.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+display(map(function(w) {
+  var prob = Math.exp(l0("silence").score(w));
+  utils.write(w, prob);
+  return prob;
+}, (l0("silence")).support()));
+
+utils.finish("prior")

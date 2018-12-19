@@ -1,0 +1,16 @@
+// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+// just enumerate the prior to get all the worlds
+var unique_worlds = l0("silence", "how", "how").support();
+
+display(map(function(w) {
+  var endorsement = Math.exp(marginal(s1(w)).score("A moved B"));
+  if (endorsement > 0) {
+    utils.write(w, "probability of 'A moved B': " + endorsement);
+  }
+  return endorsement;
+}, unique_worlds));
+
+// writes all worlds to viewable files
+utils.finish("s1_enumeration_AmovedB");
+

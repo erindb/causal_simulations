@@ -56,11 +56,11 @@ utils.finish("label_for_files");
 
 The input to this function is the name of the `.js` and `.html` files. So, e.g. `example.html` was generated with `utils.finish("example")`.
 
-To download gifs, you need to start a file server, because I can't easily get it to work on the File protocol (security issues, sigh).
+To download gifs, you need to start a file server, because I can't easily get it to work on the File protocol (security issues, sigh). In the top of this directory:
 
 ```
 npm install http-server -g
-http-server results
+http-server
 ```
 
 Then in a browser, go to `http://127.0.0.1:8080/results/example.html`.

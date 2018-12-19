@@ -1,4 +1,4 @@
-// webppl ab1d.wppl --require utils
+// webppl ab1d.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
 
 // more utils
@@ -285,6 +285,8 @@ var sample_cf_type = function() {
 
 var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
   return safe_infer({method: "enumerate"}, function() {
+    var cf_type_premise = cf_type_premise || sample_cf_type();
+    var cf_type_conclusion = cf_type_conclusion || sample_cf_type();
     var w = world_prior();
     var m = meaning({
       utterance: utterance,
@@ -328,45 +330,3 @@ var marginal = function(erp) {
     return x.utterance;
   });
 }
-
-// display(map(function(w) {
-//   var prob = Math.exp(l0("silence", "how", "how").score(w));
-//   utils.write(w, prob);
-//   return prob;
-// }, (l0("silence", "how", "how")).support()));
-
-// display(s1({
-//   A: {
-//     velocity: 1,
-//     position: 0
-//   },
-//   B: {
-//     velocity: 0,
-//     position: 1
-//   }
-// }));
-
-// utils.write(world_prior());
-// utils.write(world_prior());
-// utils.write(world_prior());
-// utils.write(world_prior());
-// utils.write(world_prior());
-// utils.write(world_prior());
-
-var utterance = "A moved B";
-
-var unique_worlds = l0("silence", "how", "how").support();
-
-display(map(function(w) {
-  // display(marginal(s1(w)));
-  var endorsement = Math.exp(marginal(s1(w)).score(utterance));
-  if (endorsement > 0) {
-    utils.write(w, "probability of 'A moved B': " + endorsement);
-  }
-  return endorsement;
-}, unique_worlds));
-
-// writes all worlds to viewable files
-utils.finish("s1_enumeration_" + utterance);
-
-// utils.finish("l0_prior")
