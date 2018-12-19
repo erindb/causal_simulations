@@ -17,6 +17,12 @@ Dependencies:
 * [webppl](http://webppl.org/)
 * [nodejs](https://nodejs.org/en/) (and [npm](https://www.npmjs.com/))
 
+Make a `results` directory at the top of this project directory.
+
+```
+mkdir results
+```
+
 Install node packages:
 
 ```
@@ -24,15 +30,13 @@ cd node_modules/utils/
 npm install
 ```
 
-Also, make a `results` directory at the top of this project directory.
-
 ## Usage
 
 ```
 webppl example.wppl --require utils
 ```
 
-Then navigate to `results/example.html` to view the animations for the sampled world.
+Then open `results/example.html` in a browser (Chrom works for sure) to view the animations for the sampled world.
 
 You'll see a simulation of a sample from the `world_prior` where the velocity of at least one of balls is nonzero. E.g.
 
@@ -51,6 +55,15 @@ utils.finish("label_for_files");
 ```
 
 The input to this function is the name of the `.js` and `.html` files. So, e.g. `example.html` was generated with `utils.finish("example")`.
+
+To download gifs, you need to start a file server, because I can't easily get it to work on the File protocol (security issues, sigh).
+
+```
+npm install http-server -g
+http-server results
+```
+
+Then in a browser, go to `http://127.0.0.1:8080/results/example.html`.
 
 ## TODO
 
