@@ -1,5 +1,30 @@
 // webppl ab1d.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
+var continuous = utils.get_flag("--continuous");
+if (continuous) {
+  display("using continuous world prior");
+} else {
+  display("using discrete world prior")
+}
+var n_velocities = (
+  utils.get_variable("--velocities") ?
+  utils.float(utils.get_variable("--velocities")) :
+  7
+);
+// var possible_velocities = [-1, 0, 1];
+var possible_velocities = (
+  (n_velocities == 3) ?
+  [-1, 0, 1] :
+  [-1, -.5, -.1, 0, 0.1, 0.5, 1]
+);
+display("possible velocities: " + possible_velocities);
+
+var stickiness = (
+  utils.get_variable("--s") ?
+  utils.float(utils.get_variable("--s")) :
+  0.53
+);
+display("stickiness parameter for counterfactuals: " + stickiness);
 
 // more utils
 // TODO move these to actual utils pkg?
@@ -52,9 +77,6 @@ var safe_infer = function(args, f) {
   }
 };
 
-// CONSTANTS
-var STICKINESS = 0.53;
-
 // WORLD PRIOR
 var objects = ["A", "B"];
 
@@ -76,7 +98,7 @@ var place_object = function(positions, obj) {
   }
 }
 var velocity_prior = function() {
-  return uniformDraw([-1, 0, 1]);
+  return uniformDraw(possible_velocities);
 }
 var velocities_prior = function() {
   return _.fromPairs(map(function(obj) {
@@ -97,10 +119,10 @@ var world_prior = function() {
 // COUNTERFACTUAL WORLD PRIOR
 
 var shadowStatePrior = function(w) {
-  var keep_position = flip(STICKINESS);
+  var keep_position = flip(stickiness);
   var positions = keep_position ? "NA" : positions_prior();
   return object_map(function(obj) {
-    var keep_velocity = flip(STICKINESS);
+    var keep_velocity = flip(stickiness);
     return {
       velocity: keep_velocity ? w[obj].velocity : velocity_prior(),
       position: keep_position ? w[obj].position : place_object(positions, obj)
@@ -124,41 +146,27 @@ var all_true = function(meanings) {
 // then conclusion would have been the case
 var counterfactual = function(args) {
   // how often is the conclusion true when the premise is?
-  var cf = safe_infer(
-    {method: "enumerate"},
-    function() {
-      var shadow_w = shadowStatePrior(args.target_world);
-      // i.e. condition on truth of premise.
-      // premise is on *initial conditions*
-      var premise = meaning({
-        utterance: args.premise,
-        target_world: shadow_w,
-        timing: "initial",
-        // input true world as the "counterfactual" now
-        counterfactual_world: args.target_world
-      });
-      // factor_meaning(premise);
-      // return whether or not conclusion is true
-      // conclusion is on *final conditions*
-      var conclusion = meaning({
-        utterance: args.conclusion,
-        target_world: shadow_w,
-        timing: "final",
-        counterfactual_world: args.target_world
-      });
-      return {
-        prob: premise,
-        result: conclusion
-      };
-    }
-  );
-  if (cf == "Impossible") {
-    return 0;
-  } else {
-    var scr = cf.score(1);
-    return (scr > -Infinity) ? Math.exp(scr) : 0;
-  }
-  return conclusion;
+
+  var shadow_w = shadowStatePrior(args.target_world);
+  // i.e. condition on truth of premise.
+  // premise is on *initial conditions*
+  var premise = meaning({
+    utterance: args.premise,
+    target_world: shadow_w,
+    timing: "initial",
+    // input true world as the "counterfactual" now
+    counterfactual_world: args.target_world
+  });
+  factor_meaning(premise);
+  // return whether or not conclusion is true
+  // conclusion is on *final conditions*
+  var conclusion = meaning({
+    utterance: args.conclusion,
+    target_world: shadow_w,
+    timing: "final",
+    counterfactual_world: args.target_world
+  });
+  return conclusion
 };
 
 var disambiguate = function(utterance, cf_version) {
@@ -180,13 +188,13 @@ var explanation = function(args) {
   var disambiguated_premise = disambiguate(args.explanans, args.cf_type_premise);
   var disambiguated_conclusion = disambiguate(args.explanandum, args.cf_type_conclusion);
   return all_true([
-    // explanans is true of the actual world
+    // explanans ("A moved") is true of the actual world @ the beginning
     meaning({
       utterance: args.explanans,
       target_world: args.target_world,
       timing: "initial"
     }),
-    // explanandum is true of the actual world
+    // explanandum ("B moved" is true of the actual world @ the end
     meaning({
       utterance: args.explanandum,
       target_world: args.target_world,

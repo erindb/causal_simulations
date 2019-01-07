@@ -1,16 +1,33 @@
-// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/ --velocities 3 --s 0.9
 
 // just enumerate the prior to get all the worlds
 var unique_worlds = l0("silence", "how", "how").support();
 
 display(map(function(w) {
   var endorsement = Math.exp(marginal(s1(w)).score("A moved B"));
-  if (endorsement > 0) {
-    utils.write(w, "probability of 'A moved B': " + endorsement);
+
+  // if (endorsement > .5 & w.A.position == 0 & Math.abs(w.A.velocity)==1) {
+  var enumeration_label = "probability of 'A moved B': " + endorsement;
+  if (endorsement > .5 & w.A.position == 0) {
+    if (endorsement == 0) {
+      utils.write(w, enumeration_label);
+    } else {
+      var params = Infer({method: "enumerate"}, function() {
+        var x = sample(s1(w));
+        condition(x.utterance == "A moved B");
+        return x.cf_type_premise + " " + x.cf_type_conclusion;
+      });
+      var params_string = "params: " + JSON.stringify(params);
+      utils.write(w, enumeration_label + params_string);
+    }
   }
   return endorsement;
 }, unique_worlds));
 
 // writes all worlds to viewable files
-utils.finish("s1_enumeration_AmovedB");
+utils.finish(
+  "s1_enumeration_AmovedB_" +
+  n_velocities + "velocities" +
+  "_s" + stickiness
+);
 

@@ -1,4 +1,4 @@
-// webppl l0_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+// webppl l0_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/ --s 0.9 --velocities 3
 
 display(map(function(w) {
   var prob = Math.exp(l0("A moved B").score(w));
