@@ -1,5 +1,10 @@
 // webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/ --velocities 3 --s 0.9
 
+var AB1D = ab1d();
+var l0 = AB1D.l0;
+var s1 = AB1D.s1;
+var label = AB1D.label;
+
 // just enumerate the prior to get all the worlds
 var unique_worlds = l0("silence", "how", "how").support();
 
@@ -26,8 +31,6 @@ display(map(function(w) {
 
 // writes all worlds to viewable files
 utils.finish(
-  "s1_enumeration_AmovedB_" +
-  n_velocities + "velocities" +
-  "_s" + stickiness
+  "s1_enumeration_AmovedB_" + label
 );
 

@@ -1,0 +1,24 @@
+// webppl l0_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+// display(map(function(w) {
+//   var prob = Math.exp(l0("A moved B").score(w));
+//   if (prob > 0.5) {
+//     utils.write(w, prob);
+//   }
+//   return prob;
+// }, (l0("A moved B")).support()));
+
+// // writes all worlds to viewable files
+// utils.finish(
+//   "l0_AmovedB_" +
+//   n_velocities + "velocities" +
+//   "_s" + stickiness +
+//   (continuous ? "_continuous" : "") +
+//   (continuous ? ("_n" + n_samples) : "") +
+//   (continuous ? ("_maxV" + max_velocity) : "")
+// );
+
+var AB1D_CONTINUOUS = ab1d_continuous();
+var l0 = AB1D_CONTINUOUS.l0;
+
+display(l0("A moved B"));

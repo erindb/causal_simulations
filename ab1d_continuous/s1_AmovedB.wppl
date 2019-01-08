@@ -1,0 +1,38 @@
+// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/ --n 100 --s 0.53 --continuous
+
+// just enumerate the prior to get all the worlds
+var unique_worlds = [
+  // {A: {position: 0, velocity: 1}, B: {position: 1, velocity: 1}},
+  {A: {position: 0, velocity: 1}, B: {position: 1, velocity: 0}},
+  // {A: {position: 0, velocity: -1}, B: {position: 1, velocity: 1}},
+  // {A: {position: 0, velocity: 1}, B: {position: 1, velocity: -1}},
+  // {A: {position: , velocity: }, B: {position: , velocity: }},
+];
+
+display(map(function(w) {
+  var endorsement = Math.exp(marginal(s1(w)).score("A moved B"));
+
+  // if (endorsement > .5 & w.A.position == 0 & Math.abs(w.A.velocity)==1) {
+  var enumeration_label = "probability of 'A moved B': " + endorsement;
+  if (endorsement == 0) {
+    utils.write(w, enumeration_label);
+  } else {
+    var params = Infer({method: "enumerate"}, function() {
+      var x = sample(s1(w));
+      condition(x.utterance == "A moved B");
+      return x.cf_type_premise + " " + x.cf_type_conclusion;
+    });
+    var params_string = "params: " + JSON.stringify(params);
+    utils.write(w, enumeration_label + params_string);
+  }  return endorsement;
+}, unique_worlds));
+
+// writes all worlds to viewable files
+utils.finish(
+  "s1_enumeration_AmovedB_" +
+  n_velocities + "velocities" +
+  "_s" + stickiness +
+  (continuous ? "_continuous" : "") +
+  (continuous ? ("_n" + n_samples) : "") +
+  (continuous ? ("_maxV" + max_velocity) : "")
+);

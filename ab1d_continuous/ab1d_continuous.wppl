@@ -1,25 +1,11 @@
 // webppl ab1d.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
-var ab1d = function() {
+var ab1d_continuous = function() {
+  display("using continuous world prior");
 
-  var continuous = utils.get_flag("--continuous");
-  if (continuous) {
-    display("using continuous world prior");
-  } else {
-    display("using discrete world prior")
-  }
-  var n_velocities = (
-    utils.get_variable("--velocities") ?
-    utils.float(utils.get_variable("--velocities")) :
-    7
-  );
-  // var possible_velocities = [-1, 0, 1];
-  var possible_velocities = (
-    (n_velocities == 3) ?
-    [-1, 0, 1] :
-    [-1, -.5, -.1, 0, 0.1, 0.5, 1]
-  );
-  display("possible velocities: " + possible_velocities);
+  // Set max velocity to 1 for now, so balls will not get off screen before the
+  // end of the video.
+  var max_velocity = 1;
 
   var stickiness = (
     utils.get_variable("--s") ?
@@ -28,6 +14,59 @@ var ab1d = function() {
   );
   display("stickiness parameter for counterfactuals: " + stickiness);
 
+  // more utils
+  // TODO move these to actual utils pkg?
+  var foreach = function(lst, fn) {
+      var foreach_ = function(i) {
+          if (i < lst.length) {
+              fn(lst[i]);
+              foreach_(i + 1);
+          }
+      };
+      foreach_(0);
+  };
+  var displayObj = function(x) {
+    display(JSON.stringify(x, undefined, 2));
+  };
+  var discretizedUniform = function(a, b, nbins) {
+    var width = b-a;
+    var width_per_step = width/(nbins-1);
+    return randomInteger(nbins)*width_per_step + a;
+  };
+  var factor_meaning = function(meaning) {
+    factor(Math.log(meaning));
+  };
+  var clone = function(x) {
+    return JSON.parse(JSON.stringify(x));
+  };
+  var extend = function(a, b) {
+    return _.extend(clone(a), b);
+  };
+  var safe_infer = function(args, f) {
+    var erp = Infer({
+      method: continuous ? "rejection" : "enumerate",
+      samples: 100
+    }, f);
+    var possible = reduce(function(x, acc) {
+      if (x.prob > 0 || x.factor > -inf) {
+          return true;
+        }
+      return acc;
+    }, false, erp.support());
+    if (possible) {
+      return Infer(args, function() {
+        var x = continuous ? f() : sample(erp);
+        if (x.prob != null) {
+          factor(Math.log(x.prob));
+        } else if (x.factor != null) {
+          factor(x.factor);
+        }
+        return x.result;
+      });
+    } else {
+      return "Impossible";
+    }
+  };
 
   // WORLD PRIOR
   var objects = ["A", "B"];
@@ -50,7 +89,8 @@ var ab1d = function() {
     }
   }
   var velocity_prior = function() {
-    return uniformDraw(possible_velocities);
+    // TODO: add guide
+    return sample(Uniform({a: -max_velocity, b: max_velocity}));
   }
   var velocities_prior = function() {
     return _.fromPairs(map(function(obj) {
@@ -109,7 +149,7 @@ var ab1d = function() {
       // input true world as the "counterfactual" now
       counterfactual_world: args.target_world
     });
-    factor_meaning(premise);
+    // factor_meaning(premise);
     // return whether or not conclusion is true
     // conclusion is on *final conditions*
     var conclusion = meaning({
@@ -118,7 +158,8 @@ var ab1d = function() {
       timing: "final",
       counterfactual_world: args.target_world
     });
-    return conclusion
+    // factor by conclusion and premise on the same level
+    return conclusion * premise;
   };
 
   var disambiguate = function(utterance, cf_version) {
@@ -243,36 +284,68 @@ var ab1d = function() {
     // return "how";
   }
 
+  var n_samples = (
+    utils.get_variable("--n") ?
+    utils.float(utils.get_variable("--n")) :
+    100
+  );
+  display("n samples for l0 inference: " + n_samples);
+
   var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
-    return safe_infer({method: "enumerate"}, function() {
+    // return safe_infer(
+    //   {
+    //     method: continuous ? "incrementalMH" : "enumerate",
+    //     samples: n_samples,
+    //     burn: n_samples / 2,
+    //     lag: 1,
+    //     verbose: true,
+    //     verboseLag: n_samples/5
+    //   },
+    var f = function() {
       var cf_type_premise = cf_type_premise || sample_cf_type();
       var cf_type_conclusion = cf_type_conclusion || sample_cf_type();
       var w = world_prior();
+      display(w);
       var m = meaning({
         utterance: utterance,
         target_world: w,
         cf_type_premise: cf_type_premise,
         cf_type_conclusion: cf_type_conclusion
       });
-      // factor_meaning(m);
       return {prob: m, result: w};
-    });
+    }
+  return f();
   });
 
-  var utteranePrior = function() {
+  var utterancePrior = function() {
     return uniformDraw(["A moved B", "silence"]);
   }
 
   var s1 = cache(function(w) {
     return safe_infer({method: "enumerate"}, function() {
-      var cf_type_premise = sample_cf_type();
-      var cf_type_conclusion = sample_cf_type();
-      var utterance = utteranePrior();
-      var interpretation = l0(utterance, cf_type_premise, cf_type_conclusion);
-      var factor = (interpretation == "Impossible" ?
-        -Infinity :
-        interpretation.score(w)
-      );
+      var utterance = utterancePrior();
+      var cf_type_premise = utterance=="silence" ? "NA" : sample_cf_type();
+      var cf_type_conclusion = utterance=="silence" ? "NA" : sample_cf_type();
+      display(cf_type_premise + " " + cf_type_conclusion + " " + utterance);
+      var interpretation_dist = l0(utterance, cf_type_premise, cf_type_conclusion);
+      // if (interpretation != "Impossible" && utterance == "A moved B") {
+      //   display(interpretation);
+      // }
+      var impossible = interpretation_dist == "Impossible";
+      var interpretation = impossible ? "NA" : sample(interpretation_dist);
+      var same_positions = impossible ? "NA" : (
+        close(interpretation.A.position, w.A.position) &&
+        close(interpretation.B.position, w.B.position));
+      var same_velocities = impossible ? "NA" : (
+        close(interpretation.A.velocity, w.A.velocity) &&
+        close(interpretation.B.velocity, w.B.velocity));
+      // var diff_velocities = impossible ? "NA" : 100*(
+      //   Math.abs(interpretation.A.velocity - w.A.velocity) +
+      //   Math.abs(interpretation.B.velocity - w.B.velocity));
+      // var factor = (impossible ? -Infinity :
+      //   (same_positions ? -diff_velocities : -Infinity));
+      var factor = (impossible ? -Infinity :
+        ((same_positions && same_velocities) ? 0 : -Infinity));
       return {
         factor: factor,
         result: {
@@ -284,13 +357,11 @@ var ab1d = function() {
     });
   });
 
-  var label = (n_velocities + "velocities" +
-      "_s" + stickiness);
+  var label = "";
 
   return {
     l0: l0,
     s1: s1,
     label: label
   }
-
-};
+}
