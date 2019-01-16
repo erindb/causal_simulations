@@ -14,68 +14,11 @@ var ab1d_continuous = function() {
   );
   display("stickiness parameter for counterfactuals: " + stickiness);
 
-  // more utils
-  // TODO move these to actual utils pkg?
-  var foreach = function(lst, fn) {
-      var foreach_ = function(i) {
-          if (i < lst.length) {
-              fn(lst[i]);
-              foreach_(i + 1);
-          }
-      };
-      foreach_(0);
-  };
-  var displayObj = function(x) {
-    display(JSON.stringify(x, undefined, 2));
-  };
-  var discretizedUniform = function(a, b, nbins) {
-    var width = b-a;
-    var width_per_step = width/(nbins-1);
-    return randomInteger(nbins)*width_per_step + a;
-  };
-  var factor_meaning = function(meaning) {
-    factor(Math.log(meaning));
-  };
-  var clone = function(x) {
-    return JSON.parse(JSON.stringify(x));
-  };
-  var extend = function(a, b) {
-    return _.extend(clone(a), b);
-  };
-  var safe_infer = function(args, f) {
-    var erp = Infer({
-      method: "rejection",
-      samples: 1000
-    }, f);
-    var possible = reduce(function(x, acc) {
-      if (x.prob > 0 || x.factor > -Infinity) {
-          return true;
-        }
-      return acc;
-    }, false, erp.support());
-    if (possible) {
-      return Infer(args, function() {
-        var x = f();
-        if (x.prob != null) {
-          factor(Math.log(x.prob));
-        } else if (x.factor != null) {
-          factor(x.factor);
-        }
-        return x.result;
-      });
-    } else {
-      return "Impossible";
-    }
-  };
 
   // WORLD PRIOR
   var objects = ["A", "B"];
 
-  var object_map = function(f, objects) {
-    return _.fromPairs(map(function(obj) {
-      return [obj, f(obj)];
-    }, objects));
-  }
+  // One of two positions: A to the left of B or B to the left of A.
   var positions_prior = function() {
     return uniformDraw(["AB", "BA"]);
   }
@@ -88,8 +31,9 @@ var ab1d_continuous = function() {
       display("invalid input for `positions`: " + positions);
     }
   }
+
+  // Continuous velocities
   var velocity_prior = function() {
-    // TODO: add guide
     return sample(Uniform({a: -max_velocity, b: max_velocity}));
   }
   var velocities_prior = function() {
@@ -97,6 +41,10 @@ var ab1d_continuous = function() {
       return [obj, velocity_prior()];
     }, objects));
   }
+
+  // World prior samples positions and velocities
+  // This just generates the initial conditions. Physics is considered
+  // independently.
   var world_prior = function() {
     var velocities = velocities_prior();
     var positions = positions_prior();
@@ -107,6 +55,8 @@ var ab1d_continuous = function() {
       };
     }, objects);
   }
+
+  // Add noise for observation
   var observe_world = function(sampled, actual) {
     map(function(ball) {
       condition(sampled[ball].position == actual[ball].position);
@@ -120,7 +70,34 @@ var ab1d_continuous = function() {
 
   // COUNTERFACTUAL WORLD PRIOR
 
-  var shadowStatePrior = function(w) {
+  /*
+  For each random variable in the original world_prior, the counterfactual
+  version of that random choice is a linear combination of two distributions.
+  Either 
+   * it chooses the actual world's value for that variable with probability 1,
+   or
+   * it runs the same random choice that it would have in the normal world_prior
+
+  The counterfactual_world_prior is based on the original world_prior. For any
+  world_prior, we could compute a corresponding counterfactual world_prior.
+  For convenience in writing these priors, all random are independent of one
+  another. That way we can simply choose to keep or resample each choice,
+  independent of whether we keep or resample the other choices. If we had
+  dependent random choices, we would have to think about all the downstream
+  effects of each counterfactual change. This would make our counterfactual
+  sampler much more complicated.
+
+  Since we're using the world_prior to sample initial conditions and then
+  running a deterministic physics simulation off of that, it's pretty easy to
+  think of the random choices as indepdentent. It's not clear why one inital
+  condition would depend on another. However, any world_prior, including ones
+  with dependent random choices, could be rewritten to be in terms of only
+  independent random choices.
+
+  TODO: write a higher order function to create the counterfactual_world_prior
+  given the world_prior (rather than just writing it out like I've done here.)
+  */
+  var counterfactual_world_prior = function(w) {
     var keep_position = flip(stickiness);
     var positions = keep_position ? "NA" : positions_prior();
     return object_map(function(obj) {
@@ -132,6 +109,13 @@ var ab1d_continuous = function() {
     }, objects);
 
   };
+
+  /*
+  Alternative that Ari thought of:
+  Resample or keep top-level nodes. If resampled, resample all dependent
+  choices, else go down one more level and flip whether to keep or resample.
+  (Or something else like that.)
+  */
 
 
 
@@ -149,30 +133,32 @@ var ab1d_continuous = function() {
   var counterfactual = function(args) {
     // how often is the conclusion true when the premise is?
 
-    var shadow_w = shadowStatePrior(args.target_world);
+    var counterfactual_world = counterfactual_world_prior(args.actual_world);
     // i.e. condition on truth of premise.
     // premise is on *initial conditions*
     var premise = meaning({
       utterance: args.premise,
-      target_world: shadow_w,
+      target_world: counterfactual_world,
       timing: "initial",
       // input true world as the "counterfactual" now
-      counterfactual_world: args.target_world
+      alternative_world: args.actual_world
     });
-    // factor_meaning(premise);
+    factor_meaning(premise);
     // return whether or not conclusion is true
     // conclusion is on *final conditions*
     var conclusion = meaning({
       utterance: args.conclusion,
-      target_world: shadow_w,
+      target_world: counterfactual_world,
       timing: "final",
-      counterfactual_world: args.target_world
+      alternative_world: args.actual_world
     });
-    // factor by conclusion and premise on the same level
-    return conclusion * premise;
+    return conclusion
   };
 
-  var disambiguate = function(utterance, cf_version) {
+
+  // If it's a whether counterfactual, this is negation. If it's a how
+  // counterfactual, we say it's different.
+  var get_alternative = function(utterance, cf_version) {
     if (utterance == "A moved" || utterance == "B moved") {
       if (cf_version == "how") {
         return utterance + " differently";
@@ -186,28 +172,56 @@ var ab1d_continuous = function() {
     }
   };
 
-  // "A moved", "B moved", w, cf_version, shadow_w
-  var explanation = function(args) {
-    var disambiguated_premise = disambiguate(args.explanans, args.cf_type_premise);
-    var disambiguated_conclusion = disambiguate(args.explanandum, args.cf_type_conclusion);
+
+
+  /*
+  Returns the semantics for cause for this premise, conclusion, and
+  counterfactual type (HH, HW, WH, WW).
+
+  "A moved B" means all these things are true:
+   - ball A (exists|moved).
+   - B moved.
+   - Counterfactually, if A had not (existed/moved/moved exactly that
+     way), then B would not have (moved/moved exactly that way).
+
+  The stuff in parens is different possible interpretations of the
+  causing event.
+
+  args = {
+        causing_event: "A moved",
+        caused_event: "B moved",
+        actual_world: args.target_world,
+        cf_type_premise: args.cf_type_premise,
+        cf_type_conclusion: args.cf_type_conclusion
+  }
+  */
+  var x_caused_y = function(args) {
+    var alternative_to_causing_event = get_alternative(
+      args.causing_event,
+      args.cf_type_premise
+    );
+    var alternative_to_caused_event = get_alternative(
+      args.caused_event,
+      args.cf_type_conclusion
+    );
     return all_true([
-      // explanans ("A moved") is true of the actual world @ the beginning
+      // causing_event ("A moved") is true of the actual world @ the beginning
       meaning({
-        utterance: args.explanans,
-        target_world: args.target_world,
+        utterance: args.causing_event,
+        target_world: args.actual_world,
         timing: "initial"
       }),
-      // explanandum ("B moved" is true of the actual world @ the end
+      // caused_event ("B moved") is true of the actual world @ the end
       meaning({
-        utterance: args.explanandum,
-        target_world: args.target_world,
+        utterance: args.caused_event,
+        target_world: args.actual_world,
         timing: "final"
       }),
-      // counterfactually, if not explanans, then not explanandum.
+      // counterfactually, if not causing_event, then not caused_event.
       counterfactual({
-        premise: disambiguated_premise,
-        conclusion: disambiguated_conclusion,
-        target_world: args.target_world
+        premise: alternative_to_causing_event,
+        conclusion: alternative_to_caused_event,
+        actual_world: args.actual_world
       })
     ]);
   };
@@ -239,25 +253,39 @@ var ab1d_continuous = function() {
 
   };
 
+  /*
+  args = {
+    utterance := which utterance are we computing the meaning for
+    target_world := which world are we computing the meaning for
+
+    // could have these kinds: WW, WH, HW, HH
+    cf_type_premise := how to interpret the CF for the premise
+    cf_type_conclusion := how to interpret the CF for the conclution
+
+    timing := is the proposition evaluated at the start or end of the physics
+              simulation
+  }
+  */
   var meaning = function(args) {
-  //   display(args.utterance);
     if (args.utterance == "silence") {
       return 1;
     } else if (args.utterance == "A moved B") {
-      // A moved B ==>
-      // A (exists|moved).
-      // B moved.
-      // If A had not (existed/moved), then B would not have moved.
-      return explanation({
-        explanans: "A moved",
-        explanandum: "B moved",
-        target_world: args.target_world,
-        counterfactual_type: args.counterfactual_type,
+      // "A moved B" means all these things are true:
+      //  - ball A (exists|moved).
+      //  - B moved.
+      //  - Counterfactually, if A had not (existed/moved/moved exactly that
+      //    way), then B would not have (moved/moved exactly that way).
+      // The stuff in parens is different possible interpretations of the
+      // causing event.
+      return x_caused_y({
+        // TODO: implement the version of this where the causing event is "A
+        // existed"
+        causing_event: "A moved",
+        caused_event: "B moved",
+        actual_world: args.target_world,
         cf_type_premise: args.cf_type_premise,
         cf_type_conclusion: args.cf_type_conclusion
       });
-  //   } else if (utterance == "A" || utterance == "B") {
-  //     return meaning(disambiguate(utterance, cf_version), w, timing);
     } else if (args.utterance == "A moved") {
       // A moved entails that A existed
       // (TODO: should this be a presupposition?)
@@ -267,16 +295,15 @@ var ab1d_continuous = function() {
       // (TODO: should this be a presupposition?)
       return moved(args.target_world, "B", args.timing);
     } else if (args.utterance == "A moved differently") {
-      return moved_differently(args.target_world, "A", args.counterfactual_world, args.timing);
+      return moved_differently(args.target_world, "A", args.alternative_world, args.timing);
     } else if (args.utterance == "B moved differently") {
-      return moved_differently(args.target_world, "B", args.counterfactual_world, args.timing);
+      return moved_differently(args.target_world, "B", args.alternative_world, args.timing);
     } else if (args.utterance.slice(0, 3) == "not") {
       return 1 - meaning({
         utterance: args.utterance.slice(4, args.utterance.length),
         target_world: args.target_world,
         timing: args.timing,
-        counterfactual_type: args.counterfactual_type,
-        counterfactual_world: args.counterfactual_world
+        alternative_world: args.alternative_world
       });
     } else {
       display("no meaning registered for utterance: " + utterance);
@@ -290,7 +317,6 @@ var ab1d_continuous = function() {
 
   var sample_cf_type = function() {
     return uniformDraw(["how", "whether"]);
-    // return "how";
   }
 
   var n_samples = (
@@ -315,11 +341,16 @@ var ab1d_continuous = function() {
   };
 
   var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
+    // Returns a distribution over actual worlds.
     return safe_infer(inference_opts, function() {
       var cf_type_premise = cf_type_premise || sample_cf_type();
       var cf_type_conclusion = cf_type_conclusion || sample_cf_type();
+      // Sample a world from world_prior.
       var w = world_prior();
-      // display(w);
+      // Meaning `m` is a number between 0 and 1 representing how well the
+      // utterance matches the world.
+      // To compute the meaning, input the utterance, the actual world,
+      // and the lexical parameters that say which kind of counterfactuals to use.
       var m = meaning({
         utterance: utterance,
         target_world: w,

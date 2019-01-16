@@ -18,12 +18,6 @@ var ab1d = function() {
   // WORLD PRIOR
   var objects = ["A", "B"];
 
-  var object_map = function(f, objects) {
-    return _.fromPairs(map(function(obj) {
-      return [obj, f(obj)];
-    }, objects));
-  }
-
 
   // One of two positions: A to the left of B or B to the left of A.
   var positions_prior = function() {
