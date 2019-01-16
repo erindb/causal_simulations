@@ -20,5 +20,22 @@
 
 var AB1D_CONTINUOUS = ab1d_continuous();
 var l0 = AB1D_CONTINUOUS.l0;
+var label = AB1D_CONTINUOUS.label;
 
-display(l0("A moved B"));
+// display(l0("A moved B"));
+
+var max_prob = utils.max(map(function(w) {
+	return Math.exp(l0("A moved B").score(w));
+}, l0("A moved B").support()));
+display(max_prob);
+
+map(function(w) {
+	var prob = Math.exp(l0("A moved B").score(w));
+	if (prob >= max_prob) {
+		display(w);
+		utils.write(w, prob);
+	}
+	return _.round(prob, 2);
+}, l0("A moved B").support());
+
+utils.finish("l0_AmovedB_" + label)

@@ -1,5 +1,8 @@
 // webppl prior.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
+var AB1D = ab1d();
+var l0 = AB1D.l0;
+
 display(map(function(w) {
   var prob = Math.exp(l0("silence").score(w));
   utils.write(w, prob);

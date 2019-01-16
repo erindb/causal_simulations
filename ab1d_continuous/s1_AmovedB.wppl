@@ -1,4 +1,8 @@
-// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/ --n 100 --s 0.53 --continuous
+// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/ --n 100 --s 0.53
+
+var AB1D_CONTINUOUS = ab1d_continuous();
+var s1 = AB1D_CONTINUOUS.s1;
+var label = AB1D_CONTINUOUS.label;
 
 // just enumerate the prior to get all the worlds
 var unique_worlds = [
@@ -28,11 +32,4 @@ display(map(function(w) {
 }, unique_worlds));
 
 // writes all worlds to viewable files
-utils.finish(
-  "s1_enumeration_AmovedB_" +
-  n_velocities + "velocities" +
-  "_s" + stickiness +
-  (continuous ? "_continuous" : "") +
-  (continuous ? ("_n" + n_samples) : "") +
-  (continuous ? ("_maxV" + max_velocity) : "")
-);
+utils.finish("s1_enumeration_AmovedB_" + label);

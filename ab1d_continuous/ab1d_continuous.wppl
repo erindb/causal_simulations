@@ -1,11 +1,11 @@
-// webppl ab1d.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+// webppl ab1d_continuous.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
 var ab1d_continuous = function() {
   display("using continuous world prior");
 
   // Set max velocity to 1 for now, so balls will not get off screen before the
   // end of the video.
-  var max_velocity = 1;
+  var max_velocity = 2;
 
   var stickiness = (
     utils.get_variable("--s") ?
@@ -44,18 +44,18 @@ var ab1d_continuous = function() {
   };
   var safe_infer = function(args, f) {
     var erp = Infer({
-      method: continuous ? "rejection" : "enumerate",
-      samples: 100
+      method: "rejection",
+      samples: 1000
     }, f);
     var possible = reduce(function(x, acc) {
-      if (x.prob > 0 || x.factor > -inf) {
+      if (x.prob > 0 || x.factor > -Infinity) {
           return true;
         }
       return acc;
     }, false, erp.support());
     if (possible) {
       return Infer(args, function() {
-        var x = continuous ? f() : sample(erp);
+        var x = f();
         if (x.prob != null) {
           factor(Math.log(x.prob));
         } else if (x.factor != null) {
@@ -106,6 +106,16 @@ var ab1d_continuous = function() {
         position: place_object(positions, obj)
       };
     }, objects);
+  }
+  var observe_world = function(sampled, actual) {
+    map(function(ball) {
+      condition(sampled[ball].position == actual[ball].position);
+      observe(Gaussian({
+        mu: sampled[ball].position,
+        // TODO is there a more sensible value for this?
+        sigma: 0.1
+      }), actual[ball].velocity);
+    }, ["A", "B"]);
   }
 
   // COUNTERFACTUAL WORLD PRIOR
@@ -278,7 +288,6 @@ var ab1d_continuous = function() {
     return meaning(args);
   });
 
-
   var sample_cf_type = function() {
     return uniformDraw(["how", "whether"]);
     // return "how";
@@ -289,23 +298,28 @@ var ab1d_continuous = function() {
     utils.float(utils.get_variable("--n")) :
     100
   );
+  var lag = (
+    utils.get_variable("--lag") ?
+    utils.float(utils.get_variable("--lag")) :
+    1
+  );
   display("n samples for l0 inference: " + n_samples);
+  var inference_opts = {
+    method: "MCMC",
+    // method: "incrementalMH",
+    samples: n_samples / lag,
+    burn: n_samples / lag / 2,
+    "lag": lag,
+    verbose: true,
+    verboseLag: n_samples/5
+  };
 
   var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
-    // return safe_infer(
-    //   {
-    //     method: continuous ? "incrementalMH" : "enumerate",
-    //     samples: n_samples,
-    //     burn: n_samples / 2,
-    //     lag: 1,
-    //     verbose: true,
-    //     verboseLag: n_samples/5
-    //   },
-    var f = function() {
+    return safe_infer(inference_opts, function() {
       var cf_type_premise = cf_type_premise || sample_cf_type();
       var cf_type_conclusion = cf_type_conclusion || sample_cf_type();
       var w = world_prior();
-      display(w);
+      // display(w);
       var m = meaning({
         utterance: utterance,
         target_world: w,
@@ -313,8 +327,7 @@ var ab1d_continuous = function() {
         cf_type_conclusion: cf_type_conclusion
       });
       return {prob: m, result: w};
-    }
-  return f();
+    });
   });
 
   var utterancePrior = function() {
@@ -322,42 +335,30 @@ var ab1d_continuous = function() {
   }
 
   var s1 = cache(function(w) {
-    return safe_infer({method: "enumerate"}, function() {
+    return Infer(inference_opts, function() {
       var utterance = utterancePrior();
       var cf_type_premise = utterance=="silence" ? "NA" : sample_cf_type();
       var cf_type_conclusion = utterance=="silence" ? "NA" : sample_cf_type();
-      display(cf_type_premise + " " + cf_type_conclusion + " " + utterance);
+      // display(cf_type_premise + " " + cf_type_conclusion + " " + utterance);
       var interpretation_dist = l0(utterance, cf_type_premise, cf_type_conclusion);
-      // if (interpretation != "Impossible" && utterance == "A moved B") {
-      //   display(interpretation);
-      // }
-      var impossible = interpretation_dist == "Impossible";
-      var interpretation = impossible ? "NA" : sample(interpretation_dist);
-      var same_positions = impossible ? "NA" : (
-        close(interpretation.A.position, w.A.position) &&
-        close(interpretation.B.position, w.B.position));
-      var same_velocities = impossible ? "NA" : (
-        close(interpretation.A.velocity, w.A.velocity) &&
-        close(interpretation.B.velocity, w.B.velocity));
-      // var diff_velocities = impossible ? "NA" : 100*(
-      //   Math.abs(interpretation.A.velocity - w.A.velocity) +
-      //   Math.abs(interpretation.B.velocity - w.B.velocity));
-      // var factor = (impossible ? -Infinity :
-      //   (same_positions ? -diff_velocities : -Infinity));
-      var factor = (impossible ? -Infinity :
-        ((same_positions && same_velocities) ? 0 : -Infinity));
+      if (interpretation_dist == "Impossible") {
+        condition(false);
+      } else {
+        var interpretation = sample(interpretation_dist);
+        observe_world(interpretation, w);
+      }
       return {
-        factor: factor,
-        result: {
-          utterance: utterance,
-          cf_type_premise: cf_type_premise,
-          cf_type_conclusion: cf_type_conclusion
-        }
+        utterance: utterance,
+        cf_type_premise: cf_type_premise,
+        cf_type_conclusion: cf_type_conclusion
       }
     });
   });
 
-  var label = "";
+  var label =  "_s" + stickiness + "_continuous" +
+    "_n" + n_samples +
+    "_lag" + lag + 
+    "_maxV" + max_velocity;
 
   return {
     l0: l0,
