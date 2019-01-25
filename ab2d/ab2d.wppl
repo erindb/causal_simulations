@@ -33,13 +33,34 @@ var prior_functions = {
 var convert_for_phys = function(w) {
   return {
     "A": {
-      "velocity": w.a_velocity,
-      "position": w.a_position
+      "velocity": {
+        "x": w.a_velocity,
+        "y": 0
+      },
+      "position": {
+        "x": w.a_position,
+        "y": 0
+      },
     },
     "B": {
-      "velocity": w.b_velocity,
-      "position": w.b_position
+      "velocity": {
+        "x": w.b_velocity,
+        "y": 0
+      },
+      "position":  {
+        "x": w.b_position,
+        "y": 0
+      },
     }
+  }
+}
+
+var convert_from_phys = function(w) {
+  return {
+    "a_velocity": w.A.velocity.x,
+    "a_position": w.A.position.x,
+    "b_velocity": w.B.velocity.x,
+    "b_position": w.B.position.x
   }
 }
 
@@ -49,13 +70,7 @@ var convert_for_phys = function(w) {
 var run_physics = function(w) {
   // convert to bodies
   var later_world = utils.run_physics(convert_for_phys(w));
-
-  return {
-    "a_velocity": later_world.A.velocity,
-    "a_position": later_world.A.position,
-    "b_velocity": later_world.B.velocity,
-    "b_position": later_world.B.position
-  }
+  return convert_from_phys(later_world);
 }
 
 var moved = function(w, ball) {
@@ -129,11 +144,11 @@ var literal_listener = CF.literal_listener;
 var endorsement = CF.endorsement;
 var prior_sampler = CF.prior_sampler;
 
-// // literal_listener("A caused B");
-// endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1});
+// literal_listener("A caused B");
+// // endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1});
 
-// display("A hits B: " +
-//       endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1}))
+display("A hits B: " +
+      endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1}))
 // display("symmetric collision: " + 
 //       endorsement({a_velocity: 1, b_velocity: -1, a_position: 0, b_position: 1}))
 // display("A follows B: " + 
