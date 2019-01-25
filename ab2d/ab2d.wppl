@@ -1,4 +1,6 @@
-// webppl ab2d.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+/*
+webppl ab2d.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+*/
 
 // parameter of the model -- how closely should counterfactual
 // RVs match actual RVs?
@@ -12,7 +14,7 @@ equal probability.*/
 // var velocity_prior = uniform(-1, 1);
 // discrete version:
 // var velocity_prior = function() {return uniformDraw([-1, 0, 1.0])}
-var vs = map(function(x) {return _.round(x, 1)}, _.range(-1, 1.1, 0.2));
+var vs = map(function(x) {return _.round(x, 1)}, _.range(-1, 1.1, 1));
 display(vs);
 var velocity_prior = function() {return uniformDraw(vs)}
 
@@ -32,25 +34,23 @@ var prior_functions = {
 // velocities of A and B will be at a later timepoint.
 // this version isn't general, just applies to this situation
 var run_physics = function(w) {
-  
-
-
-
-  
-  if (w.a_velocity > w.b_velocity && w.a_velocity != 0) {
-    // assume mass = 1, because why not
-    var total_momentum = (
-      0.5*w.a_velocity*w.a_velocity + 
-      0.5*w.b_velocity*w.b_velocity
-    );
-    // after collision, give them equal velocities, because i'm lazy
-    var new_velocity = Math.sqrt(total_momentum);
-    return {
-      a_velocity: -Math.abs(new_velocity),
-      b_velocity: Math.abs(new_velocity)
+  // convert to bodies
+  var later_world = utils.run_physics({
+    "A": {
+      "velocity": w.a_velocity,
+      "position": w.a_position
+    },
+    "B": {
+      "velocity": w.b_velocity,
+      "position": w.b_position
     }
-  } else {
-    return w;
+  });
+
+  return {
+    "a_velocity": later_world.A.velocity,
+    "a_position": later_world.A.position,
+    "b_velocity": later_world.B.velocity,
+    "b_position": later_world.B.position
   }
 }
 
@@ -59,7 +59,29 @@ var moved = function(w, ball) {
   return !(Math.abs(v - 0) < 0.0001);
 }
 
-var meaning = function(utterance, actual_world, cf_world, timing) {
+var counterfactualize = function(utterance, cf_type) {
+  if (cf_type == "how") {
+    return utterance + " differently";
+  } else {
+    return "not " + utterance;
+  }
+}
+
+var different = function(ball, actual_world, cf_world, timing) {
+  if (timing == "end") {
+    var actual_world_later = run_physics(actual_world);
+    var cf_world_later = run_physics(cf_world);
+    return different(ball, actual_world_later, cf_world_later);
+  } else {
+    if (ball == "A") {
+      actual_world.a_velocity != cf_world.a_velocity;
+    } else if (ball == "B") {
+      actual_world.b_velocity != cf_world.b_velocity;
+    }
+  }
+}
+
+var meaning = function(utterance, actual_world, cf_world, timing, cf_premise_type, cf_conclusion_type) {
   if (utterance == "silence") {
     return true;
   } else if (utterance == "A caused B") {
@@ -69,8 +91,8 @@ var meaning = function(utterance, actual_world, cf_world, timing) {
       // then B moved
       (meaning("B moved", actual_world, "NA", "end")) &&
       // and if A hadn't moved, then B wouldn't have moved
-      (meaning("not A moved", cf_world, "NA", "start")) &&
-      (meaning("not B moved", cf_world, "NA", "end"))
+      (meaning(counterfactualize("A moved", cf_premise_type), cf_world, "NA", "start")) &&
+      (meaning(counterfactualize("B moved", cf_conclusion_type), cf_world, "NA", "end"))
     )
   } else if (utterance == "A moved" && timing == "start") {
     return moved(actual_world, "A");
@@ -86,6 +108,10 @@ var meaning = function(utterance, actual_world, cf_world, timing) {
     return !(meaning("A moved", actual_world, cf_world, timing));
   } else if (utterance == "not B moved") {
     return !(meaning("B moved", actual_world, cf_world, timing));
+  } else if (utterance == "A moved differently") {
+    return different("A", actual_world, cf_world, timing);
+  } else if (utterance == "B moved differently") {
+    return different("B", actual_world, cf_world, timing);
   }
 }
 
@@ -98,8 +124,15 @@ var CF = setup_counterfactuals(prior_functions, meaning, utterancePrior);
 var literal_listener = CF.literal_listener;
 var endorsement = CF.endorsement;
 
-// literal_listener("A caused B");
-endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1});
+// // literal_listener("A caused B");
+// endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1});
 
-
+display("A hits B: " +
+      endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1}))
+display("symmetric collision: " + 
+      endorsement({a_velocity: 1, b_velocity: -1, a_position: 0, b_position: 1}))
+display("A follows B: " + 
+      endorsement({a_velocity: 1, b_velocity: 1, a_position: 0, b_position: 1}))
+display("B follows A: " + 
+      endorsement({a_velocity: -1, b_velocity: -1, a_position: 0, b_position: 1}))
 
