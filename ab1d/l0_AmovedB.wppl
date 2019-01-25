@@ -9,4 +9,4 @@ display(map(function(w) {
   return prob;
 }, (l0("A moved B")).support()));
 
-utils.finish("l0_AmovedB")
+utils.finish("l0_AmovedB_" + AB1D.label)

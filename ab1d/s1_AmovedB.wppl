@@ -13,7 +13,7 @@ display(map(function(w) {
 
   // if (endorsement > .5 & w.A.position == 0 & Math.abs(w.A.velocity)==1) {
   var enumeration_label = "probability of 'A moved B': " + endorsement;
-  if (endorsement > .5 & w.A.position == 0) {
+  if (endorsement > .5 & w.A.position == 0 & (w.A.velocity==0 || w.A.velocity==1 || w.A.velocity==-1)  & (w.B.velocity==0 || w.B.velocity==1 || w.B.velocity==-1)) {
     if (endorsement == 0) {
       utils.write(w, enumeration_label);
     } else {

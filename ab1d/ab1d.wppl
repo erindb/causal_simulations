@@ -42,6 +42,24 @@ var ab1d = function() {
   var possible_velocities = (
     (n_velocities == 7) ?
     [-1, -.5, -.1, 0, 0.1, 0.5, 1] :
+    (n_velocities == 21) ?
+    [
+      -1, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1,
+      0,
+      0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1
+    ] :
+    (n_velocities == 11) ?
+    [
+      -1, -0.8, -0.6, -0.4, -0.2,
+      0,
+      0.2, 0.4, 0.6, 0.8, 1
+    ] :
+    (n_velocities == 5) ?
+    [
+      -1, -0.5,
+      0,
+      0.5, 1
+    ] :
     [-1, 0, 1]
   );
   display("possible velocities: " + possible_velocities);
@@ -146,7 +164,7 @@ var ab1d = function() {
     // conclusion is on *final conditions*
     var conclusion = meaning({
       utterance: args.conclusion,
-      target_world: shadow_w,
+      target_world: counterfactual_world,
       timing: "final",
       alternative_world: args.actual_world
     });
@@ -185,9 +203,11 @@ var ab1d = function() {
   causing event.
 
   args = {
-    causing_event
-    cf_type_premise
-    cf_type_conclusion
+        causing_event
+        caused_event
+        actual_world
+        cf_type_premise
+        cf_type_conclusion
   }
   */
   var x_caused_y = function(args) {
@@ -203,13 +223,13 @@ var ab1d = function() {
       // causing_event ("A moved") is true of the actual world @ the beginning
       meaning({
         utterance: args.causing_event,
-        target_world: args.target_world,
+        target_world: args.actual_world,
         timing: "initial"
       }),
       // caused_event ("B moved") is true of the actual world @ the end
       meaning({
         utterance: args.caused_event,
-        target_world: args.target_world,
+        target_world: args.actual_world,
         timing: "final"
       }),
       // counterfactually, if not causing_event, then not caused_event.
@@ -237,8 +257,8 @@ var ab1d = function() {
     }
   };
 
-  var moved_differently = function(w, obj, shadow_w, timing) {
-    var relevant_world = timing=="initial" ? shadow_w : utils.run_physics(shadow_w);
+  var moved_differently = function(w, obj, counterfactual_world, timing) {
+    var relevant_world = timing=="initial" ? counterfactual_world : utils.run_physics(counterfactual_world);
     var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
     // velocity for obj is different between world and original world
     var object_moved_differently = (relevant_world[obj].velocity !=
@@ -343,10 +363,8 @@ var ab1d = function() {
 
   var s1 = cache(function(w) {
     return safe_infer({method: "enumerate"}, function() {
-      var cf_type_premise = sample_cf_type();
-      var cf_type_conclusion = sample_cf_type();
       var utterance = utteranePrior();
-      var interpretation = l0(utterance, cf_type_premise, cf_type_conclusion);
+      var interpretation = l0(utterance);
       var factor = (interpretation == "Impossible" ?
         -Infinity :
         interpretation.score(w)
@@ -354,15 +372,13 @@ var ab1d = function() {
       return {
         factor: factor,
         result: {
-          utterance: utterance,
-          cf_type_premise: cf_type_premise,
-          cf_type_conclusion: cf_type_conclusion
+          utterance: utterance
         }
       }
     });
   });
 
-  var label = (n_velocities + "velocities" +
+  var label = ("_unlifted_" + n_velocities + "velocities" +
       "_s" + stickiness);
 
   return {
