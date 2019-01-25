@@ -30,12 +30,8 @@ var prior_functions = {
   b_position: function() {return 1;}
 }
 
-// run a physics simulator to see what the positions and
-// velocities of A and B will be at a later timepoint.
-// this version isn't general, just applies to this situation
-var run_physics = function(w) {
-  // convert to bodies
-  var later_world = utils.run_physics({
+var convert_for_phys = function(w) {
+  return {
     "A": {
       "velocity": w.a_velocity,
       "position": w.a_position
@@ -44,7 +40,15 @@ var run_physics = function(w) {
       "velocity": w.b_velocity,
       "position": w.b_position
     }
-  });
+  }
+}
+
+// run a physics simulator to see what the positions and
+// velocities of A and B will be at a later timepoint.
+// this version isn't general, just applies to this situation
+var run_physics = function(w) {
+  // convert to bodies
+  var later_world = utils.run_physics(convert_for_phys(w));
 
   return {
     "a_velocity": later_world.A.velocity,
@@ -123,16 +127,21 @@ var utterancePrior = function() {
 var CF = setup_counterfactuals(prior_functions, meaning, utterancePrior);
 var literal_listener = CF.literal_listener;
 var endorsement = CF.endorsement;
+var prior_sampler = CF.prior_sampler;
 
 // // literal_listener("A caused B");
 // endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1});
 
-display("A hits B: " +
-      endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1}))
-display("symmetric collision: " + 
-      endorsement({a_velocity: 1, b_velocity: -1, a_position: 0, b_position: 1}))
-display("A follows B: " + 
-      endorsement({a_velocity: 1, b_velocity: 1, a_position: 0, b_position: 1}))
-display("B follows A: " + 
-      endorsement({a_velocity: -1, b_velocity: -1, a_position: 0, b_position: 1}))
+// display("A hits B: " +
+//       endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1}))
+// display("symmetric collision: " + 
+//       endorsement({a_velocity: 1, b_velocity: -1, a_position: 0, b_position: 1}))
+// display("A follows B: " + 
+//       endorsement({a_velocity: 1, b_velocity: 1, a_position: 0, b_position: 1}))
+// display("B follows A: " + 
+//       endorsement({a_velocity: -1, b_velocity: -1, a_position: 0, b_position: 1}))
 
+var w = prior_sampler();
+utils.write(convert_for_phys(w), "random world");
+
+utils.finish("ab2d");
