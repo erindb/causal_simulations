@@ -6,61 +6,72 @@ webppl ab2d.wppl --require ../node_modules/utils/ --results_dir ../results/ --mo
 // RVs match actual RVs?
 var STICKINESS = 0.53;
 
-/* Velocity prior:
-Each ball, A and B, can take any velocity between -1 and 1 
-(or some set of equally spaced values in that region) with
-equal probability.*/
-// uncomment for continuous version:
-// var velocity_prior = uniform(-1, 1);
-// discrete version:
-// var velocity_prior = function() {return uniformDraw([-1, 0, 1.0])}
-var vs = map(function(x) {return _.round(x, 1)}, _.range(-1, 1.1, 1));
-display(vs);
-var velocity_prior = function() {return uniformDraw(vs)}
+var myrange = function(a, b, c) {
+  return map(function(x) {return _.round(x, 2);}, _.range(a, b, c));
+}
 
+var ball_prior = {
+  velocity: {
+    // x velocity is a negative number, because going to the left
+    x: function() { return uniformDraw(myrange(-1, 0, 0.5)); },
+    // y velocity can be any number
+    y: function() { return uniformDraw(myrange(-1, 1, 1)); }
+  },
+  position: {
+    // balls start on the right side of the world
+    x: function() { return 6.5; },
+    y: function() { return uniformDraw(myrange(-10, 10, 5)); }
+  }
+}
+
+var ball_names = ["A", "B"];
+
+var name_rv = function(ball_name, variable, dimension) {
+  return ball_name + " " + variable + " " + dimension;
+}
+
+var get_rvs_for_this_ball = function(ball_name) {
+  return reduce(function(variable, acc) {
+    var fns = ball_prior[variable];
+    return acc.concat([
+      [name_rv(ball_name, variable, "x"), fns.x],
+      [name_rv(ball_name, variable, "y"), fns.y]
+    ]);
+  }, [], _.keys(ball_prior));
+}
 
 /* Prior functions
 So that it's easier to compute the counterfactual, write the prior
 in terms of independent random variables, each with its own distribution.
 */
-var prior_functions = {
-  a_velocity: velocity_prior,
-  b_velocity: velocity_prior,
-  a_position: function() {return 0;},
-  b_position: function() {return 1;}
-}
+var prior_functions = _.fromPairs(reduce(function(ball_name, acc) {
+  return acc.concat(get_rvs_for_this_ball(ball_name));
+}, [], ball_names));
+display(prior_functions);
 
 var convert_for_phys = function(w) {
   return {
-    "A": {
-      "velocity": {
-        "x": w.a_velocity,
-        "y": 0
-      },
-      "position": {
-        "x": w.a_position,
-        "y": 0
-      },
+    A: {
+      velocity: { x: w["A velocity x"], y: w["A velocity y"] },
+      position: { x: w["A position x"], y: w["A position y"] }
     },
-    "B": {
-      "velocity": {
-        "x": w.b_velocity,
-        "y": 0
-      },
-      "position":  {
-        "x": w.b_position,
-        "y": 0
-      },
+    B: {
+      velocity: { x: w["B velocity x"], y: w["B velocity y"] },
+      position: { x: w["B position x"], y: w["B position y"] }
     }
   }
 }
 
 var convert_from_phys = function(w) {
   return {
-    "a_velocity": w.A.velocity.x,
-    "a_position": w.A.position.x,
-    "b_velocity": w.B.velocity.x,
-    "b_position": w.B.position.x
+    "A velocity x": w.A.velocity.x,
+    "A velocity y": w.A.velocity.y,
+    "A position x": w.A.position.x,
+    "A position y": w.A.position.y,
+    "B velocity x": w.B.velocity.x,
+    "B velocity y": w.B.velocity.y,
+    "B position x": w.B.position.x,
+    "B position y": w.B.position.y,
   }
 }
 
@@ -74,8 +85,9 @@ var run_physics = function(w) {
 }
 
 var moved = function(w, ball) {
-  var v = (ball=="A") ? w.a_velocity : w.b_velocity;
-  return !(Math.abs(v - 0) < 0.0001);
+  var vx = (ball=="A") ? w["A velocity x"] : w["B velocity x"];
+  var vy = (ball=="A") ? w["A velocity y"] : w["B velocity y"];
+  return !(Math.abs(vx - 0) < 0.0001) || !(Math.abs(vy - 0) < 0.0001);
 }
 
 var counterfactualize = function(utterance, cf_type) {
@@ -93,9 +105,9 @@ var different = function(ball, actual_world, cf_world, timing) {
     return different(ball, actual_world_later, cf_world_later);
   } else {
     if (ball == "A") {
-      actual_world.a_velocity != cf_world.a_velocity;
+      (actual_world["A velocity x"] != cf_world["A velocity x"]) || (actual_world["A velocity y"] != cf_world["A velocity y"]);
     } else if (ball == "B") {
-      actual_world.b_velocity != cf_world.b_velocity;
+      (actual_world["B velocity x"] != cf_world["B velocity x"]) || (actual_world["B velocity y"] != cf_world["B velocity y"]);
     }
   }
 }
@@ -143,12 +155,20 @@ var CF = setup_counterfactuals(prior_functions, meaning, utterancePrior);
 var literal_listener = CF.literal_listener;
 var endorsement = CF.endorsement;
 var prior_sampler = CF.prior_sampler;
+var cf_sampler = CF.cf_sampler;
 
+var w = prior_sampler();
+display(w);
+var cf_w = cf_sampler(w);
+display(cf_w);
+
+
+display(literal_listener("A caused B"));
 // literal_listener("A caused B");
 // // endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1});
 
-display("A hits B: " +
-      endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1}))
+// display("A hits B: " +
+//       endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1}))
 // display("symmetric collision: " + 
 //       endorsement({a_velocity: 1, b_velocity: -1, a_position: 0, b_position: 1}))
 // display("A follows B: " + 
@@ -156,7 +176,19 @@ display("A hits B: " +
 // display("B follows A: " + 
 //       endorsement({a_velocity: -1, b_velocity: -1, a_position: 0, b_position: 1}))
 
-var w = prior_sampler();
-utils.write(convert_for_phys(w), "random world");
+// var w = prior_sampler();
+// utils.write(convert_for_phys(w), "random world");
+
+// utils.write({
+//   A: {velocity: {x: 0, y: 0}, position: {x: 6.5, y: -10}},
+//   B: {velocity: {x: 0, y: 0}, position: {x: 6.5, y: 10}}
+// }, "specific world");
+
+
+// utils.write(convert_for_phys(prior_sampler()), "random world");
+// utils.write(convert_for_phys(prior_sampler()), "random world");
+// utils.write(convert_for_phys(prior_sampler()), "random world");
+// utils.write(convert_for_phys(prior_sampler()), "random world");
+// utils.write(convert_for_phys(prior_sampler()), "random world");
 
 utils.finish("ab2d");
