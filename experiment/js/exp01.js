@@ -13,6 +13,10 @@
 var utterance = _.sample(["A moved B", "A caused B to move", "A affected B"]);
 // key mappings randomized between Ss
 var key_mapping = _.sample([{F: "yes", J: "no"}, {J: "yes", F: "no"}]);
+var colors = _.sample([
+  {a_color: "red", b_color: "blue"},
+  {a_color: "blue", b_color: "red"}
+]);
 
 // 25 within-Ss trials - 5 velocities per ball (-2, -1, 0, 1, 2)
 // Positions and colors of balls randomized trial-by-trial
@@ -44,17 +48,15 @@ var get_trial_variables = function() {
       {b_position: 0, a_position: 1}
     ]);
   };
-  var colors = function() {
-    return _.sample([
-      {a_color: "red", b_color: "blue"},
-      {a_color: "blue", b_color: "red"}
-    ]);
-  };
+  // var colors = function() {
+  //   return _.sample([
+  //     {a_color: "red", b_color: "blue"},
+  //     {a_color: "blue", b_color: "red"}
+  //   ]);
+  // };
   var trial_parameters = _.map(velocity_pairs, function(vs) {
     return _.extend(
-      _.extend(vs, positions()),
-      colors()
-    );
+      _.extend(vs, positions()), colors);
   });
 
   // Determine videos for each trial given positions and colors
@@ -158,6 +160,13 @@ $(document).ready(function() {
       $(".ball_b").html(this.ball_b);
       $(".f_meaning").html(key_mapping.F);
       $(".j_meaning").html(key_mapping.J);
+      var stimulus_duration = this.stimulus_duration;
+      $("#replay").click(function() {
+        $(".physics_video img").css({"display": "block"});
+        setTimeout(function() {
+          $(".physics_video img").css({"display": "none"});
+        }, stimulus_duration);
+      });
     }
   };
 
@@ -193,6 +202,7 @@ $(document).ready(function() {
       console.log(jsPsych.data.get().values())
       var data = _.map(jsPsych.data.get().values(), function(x) {
         x.stimulus = null;
+        x.onload = null;
         return x;
       });
       console.log(data);

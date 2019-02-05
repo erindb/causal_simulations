@@ -136,6 +136,7 @@ jsPsych.plugins["exp01-gif-keyboard-response"] = (function() {
       // The video will have the CSS class 'presented' which can be used to
       // provide visual feedback that the video was presented
       display_element.querySelector('.physics_video').className += ' presented';
+      $(".physics_video img").css({"display": "none"});
 
       // // The replay button will become visible
       // $("#replay").css({"visibility": "visible"})
