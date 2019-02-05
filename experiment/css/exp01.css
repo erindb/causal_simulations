@@ -1,0 +1,79 @@
+.logo {
+  display: block;
+  background-color: #8A8A8A;
+  padding: 10px;
+  border-radius: 15px;
+  width: 150px;
+  margin: auto auto;
+}
+
+.prompt {
+  margin-top: 100px;
+  padding-left: 20px;
+  padding-right: 20px;
+  border-radius: 20px;
+}
+
+.f_prompt {
+  float: left;
+}
+
+.presented {
+  background-color: #8A8A8A;
+}
+
+.j_prompt {
+  margin-top: 100px;
+  float: right;
+}
+
+.red {
+  color: #ee0000
+}
+
+.blue {
+  color: #0000ee
+}
+
+.after_video_finishes {
+  visibility: hidden;
+}
+
+
+.video_container {
+  width: 700px;
+  margin: auto auto;
+}
+
+#submitted {
+  display: none;
+}
+
+.physics_video {
+  height: 300px;
+  width: 500px;
+  margin: 50px auto 0px auto;
+  border: 1px solid black;
+}
+
+/*#replay {
+  visibility: hidden;
+}*/
+
+.slide, .extras {
+  display: none;
+}
+
+.txt {
+  margin: auto;
+  max-width: calc(18px * 36);
+}
+
+.caveats, .legal, .study_purpose {
+  text-align: left;
+  font-size: 14px;
+}
+
+.p_title {
+  font-weight: 600;
+}

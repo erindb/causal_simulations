@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Perception and language study with short videos</title>
+  <script src="js/jspsych-6.0.5/jspsych.js"></script>
+  <script src="js/jspsych-6.0.5/plugins/jspsych-html-keyboard-response.js"></script>
+  <script src="js/jspsych-6.0.5/plugins/jspsych-html-button-response.js"></script>
+  <script src="js/jspsych-6.0.5/plugins/jspsych-survey-text.js"></script>
+  <script src="js/exp01-gif-keyboard-response.js"></script>
+  <script src="js/lodash.min.js"></script>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/exp01.js"></script>
+  <link href="js/jspsych-6.0.5/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+  <link href="css/exp01.css" rel="stylesheet" type="text/css"></link>
+</head>
+<body>
+
+  <noscript>This task requires JavaScript.</noscript>
+
+  <div class="slide" id="welcome">
+    <img class="logo" src="img/cocologo.png" id="cocologo" alt="Stanford CoCoLab"/>
+    <div class="txt"><p>Stanford Computation and Cognition Lab</p></div>
+    <div class="txt"><h3>Perception and language study with short videos</h3></div>
+
+    <div class="txt"><p id="instruct-text">You will see a series of short videos. For each video, you will see a statement about the video and be asked whether or not you agree with the statement. The HIT is estimated to take ~<class="timing in minutes">{{TIME ESTMATE IN MINUTES}}</class="timing> minutes.</p></div>
+  </div>
+
+  <div class="slide" id="trial">
+    <div class="txt after_video_finishes"><p>Do you agree with the statement? Press <code>F</code> for "<span class="f_meaning">{{WHAT DOES F MEAN???}}</span>" or <code>J</code> for "<span class="j_meaning">{{WHAT DOES J MEAN???}}</span>".</p></div>
+    <div class="txt after_video_finishes"><h2>"<span class="ball_a_caps">{{BALL A}}</span> caused <span class="ball_b">{{BALL B}}</span> to move."</h2></div>
+    <div class="video_container">
+      <div class="prompt after_video_finishes f_prompt"><h1><code>F</code></h1><p><span class="f_meaning">{{WHAT DOES F MEAN???}}</span></p></div>
+      <div class="prompt after_video_finishes j_prompt"><h1><code>J</code></h1><p><span class="j_meaning">{{WHAT DOES J MEAN???}}</span></p></div>
+      <div class="physics_video"><img alt="{{VIDEO WILL BE HERE}}"/></div>
+    </div>
+    <div class="txt after_video_finishes"><p><button class="jspsych-btn" id="replay">Replay Video</button></p></div>
+  </div>
+
+  <div class="slide" id="demographics">
+    <div class="txt">
+      <p>Thank you for participating!!</p>
+    </div>
+  </div>
+
+  <div class="slide" id="thanks">
+    <div class="txt">
+      <p id="submitting">Submitting HIT, please wait...</p>
+      <p id="submitted">Responses have been submitted. You may now close this window.</p>
+    </div>
+  </div>
+
+  <div class="extras">
+    <div class="welcome legal txt"><p><span class="p_title">Legal information:</span> By answering the following questions, you are participating in a study being performed by cognitive scientists in the Stanford Department of Psychology. If you have questions about this research, please contact Erin Bennett at <a href="mailto://erindb@stanford.edu">erindb@stanford.edu</a> or Noah Goodman, at ngoodman@stanford.edu. You must be  at least 18 years old to participate. Your participation in this research is voluntary. You may decline to answer any or all of the following questions. You may decline further participation, at any time, without adverse consequences. Your anonymity is assured; the researchers who have requested your participation will not receive any personal information about you.</p></div>
+
+    <div class="welcome caveats txt"><p><span class="p_title">If you encounter technical issues:</span> Please message the requester or leave feedback on <a href="http://turkopticon.ucsd.edu">Turkopticon</a> if your timing differs significantly from our estimate or if you have other comments or concerns. Note that this study is optimized for computers: please do not try to do this study from a touch-screen (e.g. phones and tablets).</p></div>
+
+    <div class="demographics study_purpose txt"><p><span class="p_title">What was this study about?</span> We will use your responses to develop a quantitative model of causal language. We hope that such a model will give us a better understanding of human causal reasoning -- things humans are good at, and places we make mistakes -- and help robots give better explanations to people about their actions.</p></div>
+  </div>
+
+</body>
+</html>
+
+
+
+   <!--  <p id="instruct-text">You will see some sentences and be asked some questions about them. The HIT should take ~6 minutes. *Note: this is optimized for computers, and likely won't work on a touch-screen (e.g. phones and tablets).</p>
+    <button id="start_button" type="button">Start Experiment</button>
+    <p id="legal">Legal information: By answering the following questions, you are participating in a study being performed by cognitive scientists in the Stanford Department of Psychology. If you have questions about this research, please contact Erin Bennett at <a href="mailto://erindb@stanford.edu">erindb@stanford.edu</a> or Noah Goodman, at ngoodman@stanford.edu. You must be  at least 18 years old to participate. Your participation in this research is voluntary. You may decline to answer any or all of the following questions. You may decline further participation, at any time, without adverse consequences. Your anonymity is assured; the researchers who have requested your participation will not receive any personal information about you.</p>
+  </div> -->
