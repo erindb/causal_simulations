@@ -132,6 +132,11 @@ var get_trial_variables = function() {
   return all_trial_variables;
 };
 
+// worlds_to_evaluate.js
+// console.log(JSON.stringify(_.map(get_trial_variables(), function(x) {
+//   return _.pick(x, ["a_velocity", "a_position", "b_velocity", "b_position", "gloss"])
+// }), null, 2));
+
 $(document).ready(function() {
   var extras = $(".extras");
 

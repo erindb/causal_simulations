@@ -4,7 +4,7 @@ webppl ab2d.wppl --require ../node_modules/utils/ --results_dir ../results/ --mo
 
 // parameter of the model -- how closely should counterfactual
 // RVs match actual RVs?
-var STICKINESS = 0.53;
+var stickiness = 0.53;
 
 var myrange = function(a, b, c) {
   return map(function(x) {return _.round(x, 2);}, _.range(a, b, c));
@@ -151,7 +151,7 @@ var utterancePrior = function() {
   return uniformDraw(["A caused B", "silence"]);
 }
 
-var CF = setup_counterfactuals(prior_functions, meaning, utterancePrior);
+var CF = setup_counterfactuals(prior_functions, meaning, utterancePrior, stickiness);
 var literal_listener = CF.literal_listener;
 var endorsement = CF.endorsement;
 var prior_sampler = CF.prior_sampler;
@@ -163,7 +163,7 @@ var cf_w = cf_sampler(w);
 display(cf_w);
 
 
-display(literal_listener("A caused B"));
+// display(literal_listener("A caused B"));
 // literal_listener("A caused B");
 // // endorsement({a_velocity: 1, b_velocity: 0, a_position: 0, b_position: 1});
 
@@ -185,10 +185,10 @@ display(literal_listener("A caused B"));
 // }, "specific world");
 
 
-// utils.write(convert_for_phys(prior_sampler()), "random world");
-// utils.write(convert_for_phys(prior_sampler()), "random world");
-// utils.write(convert_for_phys(prior_sampler()), "random world");
-// utils.write(convert_for_phys(prior_sampler()), "random world");
-// utils.write(convert_for_phys(prior_sampler()), "random world");
+utils.write(convert_for_phys(prior_sampler()), "random world");
+utils.write(convert_for_phys(prior_sampler()), "random world");
+utils.write(convert_for_phys(prior_sampler()), "random world");
+utils.write(convert_for_phys(prior_sampler()), "random world");
+utils.write(convert_for_phys(prior_sampler()), "random world");
 
 utils.finish("ab2d");

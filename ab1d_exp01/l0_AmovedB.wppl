@@ -1,0 +1,31 @@
+// webppl l0_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/ --s 0.9 --velocities 3
+
+var AB1D = ab1d_exp01();
+var l0 = AB1D.l0;
+
+map(function(utterance) {
+  map(function(cf_premise_type) {
+    map(function(cf_conclusion_type) {
+      if (utterance!="silence" || (cf_premise_type=="how" && cf_conclusion_type=="how")) {
+        if ((cf_premise_type && cf_conclusion_type) || (cf_premise_type==false && cf_conclusion_type==false)) {
+          var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type)
+          display(utterance + cf_premise_type + cf_conclusion_type);
+          // display(listener_results);
+          if (listener_results != "Impossible") {
+            map(function(w) {
+              var prob = Math.exp(listener_results.score(w));
+              utils.write(w, prob);
+              return prob;
+            }, (listener_results).support());
+
+            utils.finish("l0_exp01_" + utterance + "_" + cf_premise_type + "_" + cf_conclusion_type + "_" + AB1D.label)
+          }
+        }
+      }
+    }, ["how", "whether", false]);
+  }, ["how", "whether", false]);
+}, ["silence", "A moved B"]);
+
+var utterance = "A moved B";
+// var utterance = "silence";
+

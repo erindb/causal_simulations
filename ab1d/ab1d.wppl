@@ -336,9 +336,10 @@ var ab1d = function() {
     // return "how";
   }
 
-  var l0 = cache(function(utterance, cf_type_premise, cf_type_conclusion) {
+  var l0 = cache(function(utterance, question_under_discussion, cf_type_premise, cf_type_conclusion) {
     // Returns a distribution over actual worlds.
     return safe_infer({method: "enumerate"}, function() {
+      // How vs whether counterfactuals
       var cf_type_premise = cf_type_premise || sample_cf_type();
       var cf_type_conclusion = cf_type_conclusion || sample_cf_type();
       // Sample a world from world_prior.
@@ -353,7 +354,7 @@ var ab1d = function() {
         cf_type_premise: cf_type_premise,
         cf_type_conclusion: cf_type_conclusion
       });
-      return {prob: m, result: w};
+      return {prob: m, result: question_under_discussion(w)};
     });
   });
 
@@ -361,13 +362,19 @@ var ab1d = function() {
     return uniformDraw(["A moved B", "silence"]);
   }
 
+  var question_under_discussion = function(w) {
+    // counterfactual inference here?
+    // then speaker wants to communicate extent to which how and whether causes are true?
+    return w;
+  }
+
   var s1 = cache(function(w) {
     return safe_infer({method: "enumerate"}, function() {
       var utterance = utteranePrior();
-      var interpretation = l0(utterance);
+      var interpretation = l0(utterance, question_under_discussion);
       var factor = (interpretation == "Impossible" ?
         -Infinity :
-        interpretation.score(w)
+        interpretation.score(question_under_discussion(w))
       );
       return {
         factor: factor,

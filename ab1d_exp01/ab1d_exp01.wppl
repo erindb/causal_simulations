@@ -1,0 +1,291 @@
+// webppl ab1d.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+var ab1d_exp01 = function() {
+  display("using discrete world prior");
+
+  // Based on "An Improved Probabilistic Account of Counterfactual Reasoning"
+  // Lucas & Kemp (2015)
+  // On average, this proportion of random choices will be the same in the
+  // counterfactual world relative to the actual world.
+  var stickiness = (
+    utils.get_variable("--s") ?
+    utils.float(utils.get_variable("--s")) :
+    0.53
+  );
+  display("stickiness parameter for counterfactuals: " + stickiness);
+
+
+  // WORLD PRIOR
+
+
+  // One of two positions: A to the left of B or B to the left of A.
+  var positions_fn = function() {
+    return uniformDraw(["AB", "BA"]);
+  }
+  var place_object = function(positions, obj) {
+    if (positions=="AB") {
+      return (obj=="A" ? 0 : 1);
+    } else if (positions=="BA") {
+      return (obj=="B" ? 0 : 1);
+    } else {
+      display("invalid input for `positions`: " + positions);
+    }
+  }
+
+  // Number of different velocities is given in input.
+  var n_speeds = (
+    utils.get_variable("--speeds") ?
+    utils.float(utils.get_variable("--speeds")) :
+    2
+  );
+  var myrange = function(a, b, c) {
+    return map(function(x) {return _.round(x, 2);}, _.range(a, b+c, c));
+  }
+  var possible_speeds = myrange(0, 1, 1/(n_speeds-1));
+  display("possible speeds: " + possible_speeds);
+  var velocity_fn = function() {
+    var course_state = uniformDraw(["DNE", "left", "still", "right"]);
+    if (course_state == "left") {
+      return -1*uniformDraw(possible_speeds);
+    } else if (course_state == "right") {
+      return uniformDraw(possible_speeds);
+    } else if (course_state == "still") {
+      return 0;
+    } else {
+      return "DNE";
+    }
+  }
+
+  var ball_names = ["A", "B"];
+
+  /* Prior functions
+  So that it's easier to compute the counterfactual, write the prior
+  in terms of independent random variables, each with its own distribution.
+  */
+  var prior_functions = {
+    a_velocity: velocity_fn,
+    b_velocity: velocity_fn,
+    position_label: positions_fn
+  };
+
+  var rewrite_worlds_from_rvs_fn = function(w) {
+    return {
+      A: {velocity: w.a_velocity, position: place_object(w.position_label, "A")},
+      B: {velocity: w.b_velocity, position: place_object(w.position_label, "B")}
+    };
+  }
+
+  // World prior samples positions and velocities
+  // This just generates the initial conditions. Physics is considered
+  // independently.
+
+  /*
+  For each random variable in the original world_prior, the counterfactual
+  version of that random choice is a linear combination of two distributions.
+  Either 
+   * it chooses the actual world's value for that variable with probability 1,
+   or
+   * it runs the same random choice that it would have in the normal world_prior
+
+  The counterfactual_world_prior is based on the original world_prior. For any
+  world_prior, we could compute a corresponding counterfactual world_prior.
+  For convenience in writing these priors, all random are independent of one
+  another. That way we can simply choose to keep or resample each choice,
+  independent of whether we keep or resample the other choices. If we had
+  dependent random choices, we would have to think about all the downstream
+  effects of each counterfactual change. This would make our counterfactual
+  sampler much more complicated.
+
+  Since we're using the world_prior to sample initial conditions and then
+  running a deterministic physics simulation off of that, it's pretty easy to
+  think of the random choices as indepdentent. It's not clear why one inital
+  condition would depend on another. However, any world_prior, including ones
+  with dependent random choices, could be rewritten to be in terms of only
+  independent random choices.
+
+  TODO: write a higher order function to create the counterfactual_world_prior
+  given the world_prior (rather than just writing it out like I've done here.)
+  */
+
+  // MEANINGS
+
+  var meaning_functions = {
+    "moved": function(w, obj, counterfactual_world, timing) {
+      var moved_at_start = (_.keys(w).indexOf(obj) == -1) ? false : w[obj].velocity != 0;
+      if (timing == "initial") {
+        return moved_at_start;
+      } else {
+        var w_final = utils.run_physics(w);
+        var moved_at_end = (_.keys(w).indexOf(obj) == -1) ? false : w_final[obj].velocity != 0;
+        if (timing == "final") {
+          return moved_at_end;
+        } else {
+          // if no timing specified, then any movement counts
+          return moved_at_start | moved_at_end;
+        }
+      }
+    },
+    "moved differently": function(w, obj, counterfactual_world, timing) {
+      var relevant_world = timing=="initial" ? counterfactual_world : utils.run_physics(counterfactual_world);
+      var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
+      // velocity for obj is different between world and original world
+      var object_dne_in_one_world_only = (
+        (_.keys(w).indexOf(obj) == -1) !=
+        (_.keys(counterfactual_world).indexOf(obj) == -1)
+      )
+      if (object_dne_in_one_world_only) {
+        return true;
+      } else {
+        var object_dne_in_both_worlds = (
+          (_.keys(w).indexOf(obj) == -1) &&
+          (_.keys(counterfactual_world).indexOf(obj) == -1)
+        );
+        if (object_dne_in_both_worlds) {
+          var object_moved_differently = (relevant_world[obj].velocity !=
+            relevant_original_world[obj].velocity);
+          var object_moved_at_all = (relevant_world[obj].velocity != 0);
+          return object_moved_at_all & object_moved_differently;
+        }
+      }
+    },
+    "existed": function(w, obj, counterfactual_world, timing) {
+      // timing doesn't matter for existence
+      return (_.keys(w).indexOf(obj) != -1);
+    },
+    "existed differently": function(w, obj, counterfactual_world, timing) {
+      var object_dne_in_one_world_only = (
+        (_.keys(w).indexOf(obj) == -1) !=
+        (_.keys(counterfactual_world).indexOf(obj) == -1)
+      )
+      if (object_dne_in_one_world_only) {
+        return true;
+      } else {
+        var object_dne_in_both_worlds = (
+          (_.keys(w).indexOf(obj) == -1) &&
+          (_.keys(counterfactual_world).indexOf(obj) == -1)
+        );
+        if (object_dne_in_both_worlds) {
+          var relevant_world = (
+            timing=="initial" ?
+            counterfactual_world :
+            utils.run_physics(counterfactual_world)
+          );
+          var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
+          // velocity for obj is different between world and original world
+          var object_moved_differently = (relevant_world[obj].velocity !=
+            relevant_original_world[obj].velocity);
+          var object_in_different_position = (
+            relevant_world[obj].position != relevant_original_world[obj].position
+          );
+          return object_in_different_position || object_moved_differently;
+        }
+      }
+    }
+  };
+
+  var counterfactualize = function(utterance, cf_type) {
+    if (cf_type == "how") {
+      return utterance + " differently";
+    } else {
+      return "not " + utterance;
+    }
+  }
+
+  var meaning = function(utterance, actual_world, cf_world, timing, cf_premise_type, cf_conclusion_type) {
+    if (utterance == "silence") {
+      return true;
+    } else if (utterance == "A moved B") {
+      return (
+        // first A moved
+        (meaning("A existed", actual_world, "NA", "start")) &&
+        // then B moved
+        (meaning("B moved", actual_world, "NA", "end")) &&
+        // and if A hadn't moved, then B wouldn't have moved
+        (meaning(counterfactualize("A existed", cf_premise_type), cf_world, "NA", "start")) &&
+        (meaning(counterfactualize("B moved", cf_conclusion_type), cf_world, "NA", "end"))
+      )
+    } else {
+      var words = utterance.split(" ");
+      var negation = words[0] == "not";
+      if (negation) {
+        return !meaning(words.slice(1).join(" "), actual_world, cf_world, timing, cf_premise_type, cf_conclusion_type);
+      } else {
+        var ball = words[0];
+        var verb = words.slice(1).join(" ");
+        var fn = meaning_functions[verb];
+        return fn(actual_world, ball, cf_world, timing);
+      }
+    }
+  };
+
+
+  /*
+  Returns the semantics for cause for this premise, conclusion, and
+  counterfactual type (HH, HW, WH, WW).
+
+  "A moved B" means all these things are true:
+   - ball A (exists|moved).
+   - B moved.
+   - Counterfactually, if A had not (existed/moved/moved exactly that
+     way), then B would not have (moved/moved exactly that way).
+
+  The stuff in parens is different possible interpretations of the
+  causing event.
+
+  args = {
+        causing_event
+        caused_event
+        actual_world
+        cf_type_premise
+        cf_type_conclusion
+  }
+  */
+
+  /*
+  args = {
+    utterance := which utterance are we computing the meaning for
+    target_world := which world are we computing the meaning for
+
+    // could have these kinds: WW, WH, HW, HH
+    cf_type_premise := how to interpret the CF for the premise
+    cf_type_conclusion := how to interpret the CF for the conclution
+
+    timing := is the proposition evaluated at the start or end of the physics
+              simulation
+  }
+  */
+
+  var utterancePrior = function() {
+    return uniformDraw(["A moved B", "silence"]);
+  };
+
+  var CF = setup_counterfactuals(
+    prior_functions,
+    meaning,
+    utterancePrior,
+    stickiness,
+    rewrite_worlds_from_rvs_fn
+  );
+  var literal_listener = CF.literal_listener;
+  var endorsement = CF.endorsement;
+  var prior_sampler = CF.prior_sampler;
+  var cf_sampler = CF.cf_sampler;
+
+  // var w = prior_sampler();
+  // display(w);
+  // display(rewrite_worlds_from_rvs_fn(w));
+  // var cf_w = cf_sampler(w);
+  // display(cf_w);
+  // display(cf_w);
+  // display(rewrite_worlds_from_rvs_fn(cf_w));
+
+  var label = ("_unlifted_" + n_speeds + "speeds" +
+      "_s" + stickiness);
+
+  return {
+    l0: literal_listener,
+    s1: endorsement,
+    label: label
+  }
+
+};
