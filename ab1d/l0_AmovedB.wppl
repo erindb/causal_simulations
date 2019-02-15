@@ -3,10 +3,14 @@
 var AB1D = ab1d();
 var l0 = AB1D.l0;
 
-display(map(function(w) {
-  var prob = Math.exp(l0("A moved B").score(w));
-  utils.write(w, prob);
-  return prob;
-}, (l0("A moved B")).support()));
+// map(function(w) {
+//   var prob = Math.exp(l0("A moved B", "whether", "whether").score(w));
+//   utils.write(w, prob, prob > 0.1);
+//   return prob;
+// }, (l0("A moved B")).support());
 
-utils.finish("l0_AmovedB_" + AB1D.label)
+display(l0("A moved B"));
+
+// utils.finish("l0_AmovedB_" + AB1D.label)
+
+"finished"

@@ -159,7 +159,7 @@ var ab1d = function() {
       // input true world as the "counterfactual" now
       alternative_world: args.actual_world
     });
-    factor_meaning(premise);
+    // factor_meaning(premise);
     // return whether or not conclusion is true
     // conclusion is on *final conditions*
     var conclusion = meaning({
@@ -168,7 +168,7 @@ var ab1d = function() {
       timing: "final",
       alternative_world: args.actual_world
     });
-    return conclusion
+    return conclusion & premise;
   };
 
 
@@ -261,9 +261,14 @@ var ab1d = function() {
     var relevant_world = timing=="initial" ? counterfactual_world : utils.run_physics(counterfactual_world);
     var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
     // velocity for obj is different between world and original world
-    var object_moved_differently = (relevant_world[obj].velocity !=
-      relevant_original_world[obj].velocity);
-    var object_moved_at_all = (relevant_world[obj].velocity != 0);
+    var object_moved_differently = (
+      relevant_world[obj].velocity !=
+      relevant_original_world[obj].velocity
+    );
+    var object_moved_at_all = (
+      (relevant_world[obj].velocity) != 0 &&
+      (relevant_original_world[obj].velocity != 0)
+    );
     return object_moved_at_all & object_moved_differently;
 
   };
@@ -333,15 +338,15 @@ var ab1d = function() {
 
   var sample_cf_type = function() {
     return uniformDraw(["how", "whether"]);
-    // return "how";
   }
 
-  var l0 = cache(function(utterance, question_under_discussion, cf_type_premise, cf_type_conclusion) {
+  var l0 = function(utterance, cf_type_premise, cf_type_conclusion) {
+
     // Returns a distribution over actual worlds.
     return safe_infer({method: "enumerate"}, function() {
-      // How vs whether counterfactuals
-      var cf_type_premise = cf_type_premise || sample_cf_type();
-      var cf_type_conclusion = cf_type_conclusion || sample_cf_type();
+    // How vs whether counterfactuals
+    var cf_type_premise = utils.isString(cf_type_premise) ? cf_type_premise : sample_cf_type();
+    var cf_type_conclusion = utils.isString(cf_type_conclusion) ? cf_type_conclusion : sample_cf_type();
       // Sample a world from world_prior.
       var w = world_prior();
       // Meaning `m` is a number between 0 and 1 representing how well the
@@ -354,18 +359,12 @@ var ab1d = function() {
         cf_type_premise: cf_type_premise,
         cf_type_conclusion: cf_type_conclusion
       });
-      return {prob: m, result: question_under_discussion(w)};
+      return {prob: m, result: w};
     });
-  });
+  };
 
   var utteranePrior = function() {
     return uniformDraw(["A moved B", "silence"]);
-  }
-
-  var question_under_discussion = function(w) {
-    // counterfactual inference here?
-    // then speaker wants to communicate extent to which how and whether causes are true?
-    return w;
   }
 
   var s1 = cache(function(w) {
@@ -374,7 +373,7 @@ var ab1d = function() {
       var interpretation = l0(utterance, question_under_discussion);
       var factor = (interpretation == "Impossible" ?
         -Infinity :
-        interpretation.score(question_under_discussion(w))
+        interpretation.score(w)
       );
       return {
         factor: factor,

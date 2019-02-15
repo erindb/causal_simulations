@@ -2,6 +2,7 @@
 
 var AB1D = ab1d_exp01();
 var l0 = AB1D.l0;
+var rewrite_worlds_from_rvs_fn = AB1D.rewrite_worlds_from_rvs_fn;
 
 map(function(utterance) {
   map(function(cf_premise_type) {
@@ -9,23 +10,40 @@ map(function(utterance) {
       if (utterance!="silence" || (cf_premise_type=="how" && cf_conclusion_type=="how")) {
         if ((cf_premise_type && cf_conclusion_type) || (cf_premise_type==false && cf_conclusion_type==false)) {
           var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type)
-          display(utterance + cf_premise_type + cf_conclusion_type);
-          // display(listener_results);
+          var outfile = (
+            "l0_exp01_" + utterance + "_" +
+            cf_premise_type + "_" +
+            cf_conclusion_type + "_" +
+            AB1D.label
+          );
+          display(outfile);
+          display(listener_results);
           if (listener_results != "Impossible") {
             map(function(w) {
               var prob = Math.exp(listener_results.score(w));
-              utils.write(w, prob);
+              utils.write(rewrite_worlds_from_rvs_fn(w), prob, prob > 0.1 ? true : false);
               return prob;
             }, (listener_results).support());
 
-            utils.finish("l0_exp01_" + utterance + "_" + cf_premise_type + "_" + cf_conclusion_type + "_" + AB1D.label)
+            utils.finish(outfile)
           }
         }
       }
-    }, ["how", "whether", false]);
-  }, ["how", "whether", false]);
-}, ["silence", "A moved B"]);
+    // }, ["whether"])
+    }, [false])
+    // }, [//"whether"//, "how", false]);
+  // }, ["whether"])
+  }, [false])
+  //}, [//"whether"//, "how", false]);
+}, ["A moved B"]);
+// }, [//"silence", "A moved B"]);
 
-var utterance = "A moved B";
-// var utterance = "silence";
+// var utterance = "A moved B";
+// var cf_premise_type = "whether";
+// var cf_conclusion_type = "whether";
+// // var utterance = "silence";
+
+// display(utterance);
+// var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type);
+// display(listener_results);
 

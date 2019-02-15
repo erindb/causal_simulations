@@ -41,19 +41,34 @@ var ab1d_exp01 = function() {
   var myrange = function(a, b, c) {
     return map(function(x) {return _.round(x, 2);}, _.range(a, b+c, c));
   }
-  var possible_speeds = myrange(0, 1, 1/(n_speeds-1));
-  display("possible speeds: " + possible_speeds);
+  // var possible_speeds = myrange(0, 1, 1/(n_speeds)).slice(1);
+  var possible_velocities = myrange(-1, 1, 1/(n_speeds));
+  // var possible_velocities = myrange(-1, 1, 1/(n_speeds)).concat(["DNE"]);
+  // var possible_speeds = myrange(-1, 1, 1/(n_speeds));
+  // display("possible speeds: " + possible_speeds);
+  // display(possible_speeds.concat(
+        // map(function(x) {return -x;}, possible_speeds)));
+  display("possible velocities: " + possible_velocities);
   var velocity_fn = function() {
-    var course_state = uniformDraw(["DNE", "left", "still", "right"]);
-    if (course_state == "left") {
-      return -1*uniformDraw(possible_speeds);
-    } else if (course_state == "right") {
-      return uniformDraw(possible_speeds);
-    } else if (course_state == "still") {
-      return 0;
-    } else {
-      return "DNE";
-    }
+    // return uniformDraw(
+      // possible_speeds.concat(
+        // map(function(x) {return -x;}, possible_speeds)));
+    // var course_state = uniformDraw(["DNE", "left", "still", "right"]);
+    // if (course_state == "left") {
+    //   return -1*uniformDraw(possible_speeds);
+    // } else if (course_state == "right") {
+    //   return uniformDraw(possible_speeds);
+    // } else if (course_state == "still") {
+    //   return 0;
+    // } else {
+    //   return "DNE";
+    // }
+    // if (flip()) {
+    //   return "DNE";
+    // } else {
+    //   return uniformDraw(possible_speeds)
+    // }
+    return uniformDraw(possible_velocities);
   }
 
   var ball_names = ["A", "B"];
@@ -65,13 +80,15 @@ var ab1d_exp01 = function() {
   var prior_functions = {
     a_velocity: velocity_fn,
     b_velocity: velocity_fn,
-    position_label: positions_fn
+    position_label: positions_fn,
+    a_exists: function() {return true;},//flip,
+    b_exists: function() {return true;}// flip
   };
 
   var rewrite_worlds_from_rvs_fn = function(w) {
     return {
-      A: {velocity: w.a_velocity, position: place_object(w.position_label, "A")},
-      B: {velocity: w.b_velocity, position: place_object(w.position_label, "B")}
+      A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: place_object(w.position_label, "A")},
+      B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: place_object(w.position_label, "B")}
     };
   }
 
@@ -109,77 +126,81 @@ var ab1d_exp01 = function() {
 
   // MEANINGS
 
+  var run_physics = function(w) {
+    var world_with_DNEs_moved = mapObject(function(k, v) {
+      return (v.velocity=="DNE") ? {velocity: 0, position: 10000} : v;
+    }, w);
+    // display(world_with_DNEs_moved);
+    // var world_with_DNEs_removed = _.fromPairs(reduce(function(p, acc) {
+    //   var ball_name = p[0];
+    //   var ball_properties = p[1];
+    //   if (ball_properties.velocity == "DNE") {
+    //     return acc;
+    //   } else {
+    //     return acc.concat([[ball_name, ball_properties]]);
+    //   }
+    // }, [], _.toPairs(w)));
+    var later_world = utils.run_physics(world_with_DNEs_moved);
+    return _.fromPairs(map(function(ball_name) {
+      // if (_.keys(later_world).indexOf(ball_name)==-1) {
+      if (later_world[ball_name].position > 1000) {
+        [ball_name, {"velocity": "DNE", "position": "NA"}];
+      } else {
+        return [ball_name, later_world[ball_name]];
+      }
+    }, ["A", "B"]));
+  };
+
+  var differently = function(fn, variables, w, obj, counterfactual_world, timing) {
+    var cf_world = timing=="start" ? counterfactual_world : run_physics(counterfactual_world);
+    var actual_world = timing=="start" ? w : run_physics(w);
+    if (fn(cf_world, obj, "NA", timing) && fn(actual_world, obj, "NA", timing)) {
+      return reduce(function(variable, one_is_different) {
+        return one_is_different || (cf_world[obj][variable] != actual_world[obj][variable]);
+      }, false, variables);
+    } else {
+      return false;
+    }
+  };
+
+  var moved = function(w, obj, counterfactual_world, timing) {
+    var relevant_world = timing=="start" ? w : run_physics(w);
+    var relevant_velocity = relevant_world[obj].velocity;
+    if (relevant_velocity == "DNE") {
+      return false;
+    } else if (relevant_velocity == 0) {
+      return false;
+    } else {
+      return true;
+    }
+  };
+
+  var existed = function(w, obj, counterfactual_world, timing) {
+    // timing doesn't matter for existence
+    return w[obj].velocity != "DNE";
+  };
+
   var meaning_functions = {
-    "moved": function(w, obj, counterfactual_world, timing) {
-      var moved_at_start = (_.keys(w).indexOf(obj) == -1) ? false : w[obj].velocity != 0;
-      if (timing == "initial") {
-        return moved_at_start;
-      } else {
-        var w_final = utils.run_physics(w);
-        var moved_at_end = (_.keys(w).indexOf(obj) == -1) ? false : w_final[obj].velocity != 0;
-        if (timing == "final") {
-          return moved_at_end;
-        } else {
-          // if no timing specified, then any movement counts
-          return moved_at_start | moved_at_end;
-        }
-      }
-    },
+    "moved": moved,
     "moved differently": function(w, obj, counterfactual_world, timing) {
-      var relevant_world = timing=="initial" ? counterfactual_world : utils.run_physics(counterfactual_world);
-      var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
-      // velocity for obj is different between world and original world
-      var object_dne_in_one_world_only = (
-        (_.keys(w).indexOf(obj) == -1) !=
-        (_.keys(counterfactual_world).indexOf(obj) == -1)
-      )
-      if (object_dne_in_one_world_only) {
-        return true;
-      } else {
-        var object_dne_in_both_worlds = (
-          (_.keys(w).indexOf(obj) == -1) &&
-          (_.keys(counterfactual_world).indexOf(obj) == -1)
-        );
-        if (object_dne_in_both_worlds) {
-          var object_moved_differently = (relevant_world[obj].velocity !=
-            relevant_original_world[obj].velocity);
-          var object_moved_at_all = (relevant_world[obj].velocity != 0);
-          return object_moved_at_all & object_moved_differently;
-        }
-      }
+      return differently(
+        moved,
+        ["velocity"],
+        w,
+        obj,
+        counterfactual_world,
+        timing
+      );
     },
-    "existed": function(w, obj, counterfactual_world, timing) {
-      // timing doesn't matter for existence
-      return (_.keys(w).indexOf(obj) != -1);
-    },
+    "existed": existed,
     "existed differently": function(w, obj, counterfactual_world, timing) {
-      var object_dne_in_one_world_only = (
-        (_.keys(w).indexOf(obj) == -1) !=
-        (_.keys(counterfactual_world).indexOf(obj) == -1)
-      )
-      if (object_dne_in_one_world_only) {
-        return true;
-      } else {
-        var object_dne_in_both_worlds = (
-          (_.keys(w).indexOf(obj) == -1) &&
-          (_.keys(counterfactual_world).indexOf(obj) == -1)
-        );
-        if (object_dne_in_both_worlds) {
-          var relevant_world = (
-            timing=="initial" ?
-            counterfactual_world :
-            utils.run_physics(counterfactual_world)
-          );
-          var relevant_original_world = timing=="initial" ? w : utils.run_physics(w);
-          // velocity for obj is different between world and original world
-          var object_moved_differently = (relevant_world[obj].velocity !=
-            relevant_original_world[obj].velocity);
-          var object_in_different_position = (
-            relevant_world[obj].position != relevant_original_world[obj].position
-          );
-          return object_in_different_position || object_moved_differently;
-        }
-      }
+      return differently(
+        existed,
+        ["position", "velocity"],
+        w,
+        obj,
+        counterfactual_world,
+        timing);
     }
   };
 
@@ -197,18 +218,25 @@ var ab1d_exp01 = function() {
     } else if (utterance == "A moved B") {
       return (
         // first A moved
-        (meaning("A existed", actual_world, "NA", "start")) &&
+        // (meaning("A existed", actual_world, "NA", "start")) &&
+        (meaning("A moved", actual_world, "NA", "start")) &&
         // then B moved
         (meaning("B moved", actual_world, "NA", "end")) &&
         // and if A hadn't moved, then B wouldn't have moved
-        (meaning(counterfactualize("A existed", cf_premise_type), cf_world, "NA", "start")) &&
-        (meaning(counterfactualize("B moved", cf_conclusion_type), cf_world, "NA", "end"))
-      )
+        // (meaning(counterfactualize("A existed", cf_premise_type), cf_world, actual_world, "start")) &&
+        (meaning(counterfactualize("A moved", cf_premise_type), cf_world, actual_world, "start")) &&
+        (meaning(counterfactualize("B moved", cf_conclusion_type), cf_world, actual_world, "end"))
+      );
     } else {
       var words = utterance.split(" ");
       var negation = words[0] == "not";
       if (negation) {
-        return !meaning(words.slice(1).join(" "), actual_world, cf_world, timing, cf_premise_type, cf_conclusion_type);
+        return !meaning(
+          words.slice(1).join(" "),
+          actual_world,
+          cf_world,
+          timing
+        );
       } else {
         var ball = words[0];
         var verb = words.slice(1).join(" ");
@@ -268,6 +296,7 @@ var ab1d_exp01 = function() {
   );
   var literal_listener = CF.literal_listener;
   var endorsement = CF.endorsement;
+  var speaker = CF.speaker;
   var prior_sampler = CF.prior_sampler;
   var cf_sampler = CF.cf_sampler;
 
@@ -284,8 +313,10 @@ var ab1d_exp01 = function() {
 
   return {
     l0: literal_listener,
-    s1: endorsement,
-    label: label
+    endorsement: endorsement,
+    s1: speaker,
+    label: label,
+    rewrite_worlds_from_rvs_fn: rewrite_worlds_from_rvs_fn
   }
 
 };
