@@ -1,0 +1,76 @@
+// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+
+var AB1D = ab1d_exp01();
+var l0 = AB1D.l0;
+var label = AB1D.label;
+var s1 = AB1D.s1;
+var endorsement_fn = AB1D.endorsement;
+var rewrite_worlds_from_rvs_fn = AB1D.rewrite_worlds_from_rvs_fn;
+
+map(function(raw_w) {
+  var w = {
+    a_velocity: raw_w.a_velocity/2,
+    b_velocity: raw_w.b_velocity/2,
+    position_label: raw_w.a_position==0 ? "AB" : "BA",
+    a_exists: true,
+    b_exists: true
+  };
+  display(w);
+  display(l0("silence").score(w));
+
+  var endorsement = endorsement_fn(w);
+
+  // // var endorsement = Math.exp(marginal(s1(w)).score("A moved B"));
+
+  // if (endorsement > .5 & w.A.position == 0 & Math.abs(w.A.velocity)==1) {
+  var enumeration_label = "gloss: " + raw_w.gloss + "<br/>probability of 'A moved B': " + endorsement;
+  display(enumeration_label);
+
+  // if (endorsement > .5 & w.A.position == 0 & (w.A.velocity==0 || w.A.velocity==1 || w.A.velocity==-1)  & (w.B.velocity==0 || w.B.velocity==1 || w.B.velocity==-1)) {
+    // if (endorsement == 0) {
+      utils.write(w, enumeration_label, endorsement > 0.5);
+    // } else {
+    //   var params = Infer({method: "enumerate"}, function() {
+    //     var x = sample(s1(w));
+    //     condition(x.utterance == "A moved B");
+    //     return x.cf_type_premise + " " + x.cf_type_conclusion;
+    //   });
+    //   var params_string = "params: " + JSON.stringify(params);
+    //   utils.write(rewrite_worlds_from_rvs_fn(w), enumeration_label + params_string);
+    // }
+  // }
+  // if (endorsement > 0.5) {
+  //   return [w, raw_w.gloss, endorsement];
+  // }
+}, utils.worlds_to_evaluate);
+
+// // just enumerate the prior to get all the worlds
+// var unique_worlds = l0("silence", "how", "how").support();
+
+// display(map(function(w) {
+//   var endorsement = Math.exp(marginal(s1(w)).score("A moved B"));
+
+//   // if (endorsement > .5 & w.A.position == 0 & Math.abs(w.A.velocity)==1) {
+//   var enumeration_label = "probability of 'A moved B': " + endorsement;
+//   if (endorsement > .5 & w.A.position == 0 & (w.A.velocity==0 || w.A.velocity==1 || w.A.velocity==-1)  & (w.B.velocity==0 || w.B.velocity==1 || w.B.velocity==-1)) {
+//     if (endorsement == 0) {
+//       utils.write(w, enumeration_label);
+//     } else {
+//       var params = Infer({method: "enumerate"}, function() {
+//         var x = sample(s1(w));
+//         condition(x.utterance == "A moved B");
+//         return x.cf_type_premise + " " + x.cf_type_conclusion;
+//       });
+//       var params_string = "params: " + JSON.stringify(params);
+//       utils.write(w, enumeration_label + params_string);
+//     }
+//   }
+//   return endorsement;
+// }, unique_worlds));
+
+// writes all worlds to viewable files
+utils.finish(
+  "s1_exp01_AmovedB_" + label
+);
+

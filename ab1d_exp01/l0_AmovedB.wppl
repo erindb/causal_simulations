@@ -21,7 +21,13 @@ map(function(utterance) {
           if (listener_results != "Impossible") {
             map(function(w) {
               var prob = Math.exp(listener_results.score(w));
-              utils.write(rewrite_worlds_from_rvs_fn(w), prob, prob > 0.1 ? true : false);
+              var keep = (
+                (([0, 0.5, 1, -0.5, -1].indexOf(w.a_velocity)) >= 0) &&
+                (([0, 0.5, 1, -0.5, -1].indexOf(w.b_velocity)) >= 0) &&
+                (w.position_label=="AB") && 
+                (prob > 0.09)
+              );
+              utils.write(rewrite_worlds_from_rvs_fn(w), prob, keep);
               return prob;
             }, (listener_results).support());
 
@@ -30,11 +36,11 @@ map(function(utterance) {
         }
       }
     // }, ["whether"])
-    }, [false])
-    // }, [//"whether"//, "how", false]);
+    // }, [false])
+    }, ["whether", "how", false]);
   // }, ["whether"])
-  }, [false])
-  //}, [//"whether"//, "how", false]);
+  // }, [false])
+  }, ["whether", "how", false]);
 }, ["A moved B"]);
 // }, [//"silence", "A moved B"]);
 
@@ -47,3 +53,4 @@ map(function(utterance) {
 // var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type);
 // display(listener_results);
 
+display("finished");
