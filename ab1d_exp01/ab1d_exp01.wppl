@@ -18,9 +18,24 @@ var ab1d_exp01 = function() {
   // WORLD PRIOR
 
 
+  // Number of different velocities is given in input.
+  var n_positions = (
+    utils.get_variable("--positions") ?
+    utils.float(utils.get_variable("--positions")) :
+    2
+  );
+  var myrange = function(a, b, c) {
+    return map(function(x) {return _.round(x, 2);}, _.range(a, b+c, c));
+  }
+  var possible_positions = myrange(0, 1, 1/(n_positions-1));
+  display("possible positions: " + possible_positions);
+
+
+
   // One of two positions: A to the left of B or B to the left of A.
   var positions_fn = function() {
-    return uniformDraw(["AB", "BA"]);
+    // return uniformDraw(["AB", "BA"]);
+    return uniformDraw([0, 1]);
   }
   var place_object = function(positions, obj) {
     if (positions=="AB") {
@@ -38,9 +53,6 @@ var ab1d_exp01 = function() {
     utils.float(utils.get_variable("--speeds")) :
     2
   );
-  var myrange = function(a, b, c) {
-    return map(function(x) {return _.round(x, 2);}, _.range(a, b+c, c));
-  }
   // var possible_speeds = myrange(0, 1, 1/(n_speeds)).slice(1);
   // var possible_velocities = myrange(-1, 1, 1/(n_speeds));
   var possible_velocities = myrange(-1, 1, 1/(n_speeds)).concat(["DNE"]);
@@ -80,7 +92,8 @@ var ab1d_exp01 = function() {
   var prior_functions = {
     a_velocity: velocity_fn,
     b_velocity: velocity_fn,
-    position_label: positions_fn,
+    a_position: positions_fn,
+    b_position: positions_fn,
     a_exists: function() {return true;},
     b_exists: function() {return true;}
     // a_exists: flip,
@@ -89,8 +102,8 @@ var ab1d_exp01 = function() {
 
   var rewrite_worlds_from_rvs_fn = function(w) {
     return {
-      A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: place_object(w.position_label, "A")},
-      B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: place_object(w.position_label, "B")}
+      A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: w.a_position},
+      B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: w.b_position}
     };
   }
 
@@ -324,8 +337,12 @@ var ab1d_exp01 = function() {
   // display(cf_w);
   // display(rewrite_worlds_from_rvs_fn(cf_w));
 
-  var label = ("unlifted_" + n_speeds + "speeds" +
-      "_s" + stickiness);
+  var label = (
+    "unlifted" +
+    "_" + n_speeds + "speeds" +
+    "_s" + stickiness +
+    "_" + n_positions + "positions"
+  );
 
   return {
     l0: literal_listener,
