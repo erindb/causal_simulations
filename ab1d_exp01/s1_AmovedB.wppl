@@ -19,9 +19,9 @@ map(function(raw_w) {
   display(w);
   display(l0("silence").score(w));
 
-  var endorsement = endorsement_fn(w);
+  var endorsement = endorsement_fn(w, "A moved B");
 
-  // // var endorsement = Math.exp(marginal(s1(w)).score("A moved B"));
+  // // var endorsement = Math.exp(marginal(s1(w, "A moved B")).score("A moved B"));
 
   // if (endorsement > .5 & w.A.position == 0 & Math.abs(w.A.velocity)==1) {
   var enumeration_label = "gloss: " + raw_w.gloss + "<br/>probability of 'A moved B': " + endorsement;

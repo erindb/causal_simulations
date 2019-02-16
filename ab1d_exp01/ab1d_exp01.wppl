@@ -42,8 +42,8 @@ var ab1d_exp01 = function() {
     return map(function(x) {return _.round(x, 2);}, _.range(a, b+c, c));
   }
   // var possible_speeds = myrange(0, 1, 1/(n_speeds)).slice(1);
-  var possible_velocities = myrange(-1, 1, 1/(n_speeds));
-  // var possible_velocities = myrange(-1, 1, 1/(n_speeds)).concat(["DNE"]);
+  // var possible_velocities = myrange(-1, 1, 1/(n_speeds));
+  var possible_velocities = myrange(-1, 1, 1/(n_speeds)).concat(["DNE"]);
   // var possible_speeds = myrange(-1, 1, 1/(n_speeds));
   // display("possible speeds: " + possible_speeds);
   // display(possible_speeds.concat(
@@ -81,10 +81,10 @@ var ab1d_exp01 = function() {
     a_velocity: velocity_fn,
     b_velocity: velocity_fn,
     position_label: positions_fn,
-    // a_exists: function() {return true;},
-    // b_exists: function() {return true;}
-    a_exists: flip,
-    b_exists: flip
+    a_exists: function() {return true;},
+    b_exists: function() {return true;}
+    // a_exists: flip,
+    // b_exists: flip
   };
 
   var rewrite_worlds_from_rvs_fn = function(w) {
@@ -299,14 +299,14 @@ var ab1d_exp01 = function() {
   }
   */
 
-  var utterancePrior = function() {
-    return uniformDraw(["A moved B", "silence"]);
-  };
+  //var utterancePrior = function() {
+  //  return uniformDraw(["A moved B", "silence"]);
+  //};
 
   var CF = setup_counterfactuals(
     prior_functions,
     meaning,
-    utterancePrior,
+    //utterancePrior,
     stickiness,
     rewrite_worlds_from_rvs_fn
   );
