@@ -48,6 +48,9 @@ var ab1d_exp01 = function() {
     }
   }
 
+  var DNE_SEPARATE = utils.get_flag("--dne_separate");
+  var NO_DNE = utils.get_flag("--no_dne")
+
   // Number of different velocities is given in input.
   var n_speeds = (
     utils.get_variable("--speeds") ?
@@ -55,8 +58,8 @@ var ab1d_exp01 = function() {
     2
   );
   // var possible_speeds = myrange(0, 1, 1/(n_speeds)).slice(1);
-  // var possible_velocities = myrange(-1, 1, 1/(n_speeds));
-  var possible_velocities = myrange(-1, 1, 1/(n_speeds)).concat(["DNE"]);
+  var possible_velocities = (DNE_SEPARATE || NO_DNE) ? myrange(-1, 1, 1/(n_speeds)) : myrange(-1, 1, 1/(n_speeds)).concat(["DNE"]);
+  // var possible_velocities = myrange(-1, 1, 1/(n_speeds)).concat(["DNE"]);
   // var possible_speeds = myrange(-1, 1, 1/(n_speeds));
   // display("possible speeds: " + possible_speeds);
   // display(possible_speeds.concat(
@@ -66,22 +69,28 @@ var ab1d_exp01 = function() {
     // return uniformDraw(
       // possible_speeds.concat(
         // map(function(x) {return -x;}, possible_speeds)));
-    // var course_state = uniformDraw(["DNE", "left", "still", "right"]);
+    var course_state = uniformDraw(["DNE", "move"]);// "left", "still", "right"]);
     // if (course_state == "left") {
     //   return -1*uniformDraw(possible_speeds);
     // } else if (course_state == "right") {
     //   return uniformDraw(possible_speeds);
     // } else if (course_state == "still") {
     //   return 0;
-    // } else {
-    //   return "DNE";
-    // }
+    if (DNE_SEPARATE) {
+      if (course_state == "move") {
+        return uniformDraw(possible_velocities);
+      } else {
+        return "DNE";
+      }
+    } else {
+      return uniformDraw(possible_velocities);
+    }
     // if (flip()) {
     //   return "DNE";
     // } else {
     //   return uniformDraw(possible_speeds)
     // }
-    return uniformDraw(possible_velocities);
+    // return uniformDraw(possible_velocities);
   }
 
   var ball_names = ["A", "B"];
@@ -98,14 +107,14 @@ var ab1d_exp01 = function() {
     position_label: positions_fn,
     // a_exists: function() {return true;},
     // b_exists: function() {return true;}
-    a_exists: flip,
-    b_exists: flip
+    // a_exists: flip,
+    // b_exists: flip
   };
 
   var rewrite_worlds_from_rvs_fn = function(w) {
     return {
-      A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: place_object(w.position_label, "A")},
-      B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: place_object(w.position_label, "B")}
+      A: {velocity: w.a_velocity, position: place_object(w.position_label, "A")},
+      B: {velocity: w.b_velocity, position: place_object(w.position_label, "B")}
       // A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: w.a_position},
       // B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: w.b_position}
     };
@@ -173,6 +182,7 @@ var ab1d_exp01 = function() {
   var differently = function(fn, variables, w, obj, counterfactual_world, timing) {
     var cf_world = timing=="start" ? counterfactual_world : run_physics(counterfactual_world);
     var actual_world = timing=="start" ? w : run_physics(w);
+    // // disjoint:
     // if (fn(cf_world, obj, "NA", timing) && fn(actual_world, obj, "NA", timing)) {
       return reduce(function(variable, one_is_different) {
         return one_is_different || (cf_world[obj][variable] != actual_world[obj][variable]);
@@ -359,11 +369,14 @@ var ab1d_exp01 = function() {
   // display(cf_w);
   // display(rewrite_worlds_from_rvs_fn(cf_w));
 
+  var lifted = utils.get_flag("--lifted");
+
   var label = (
-    "unlifted" +
+    (lifted ? "lifted" : "unlifted") +
     "_" + n_speeds + "speeds" +
-    "_s" + stickiness //+
-    // "_" + n_positions + "positions"
+    "_s" + stickiness +
+    // "_" + n_positions + "positions" +
+    (DNE_SEPARATE ? "_DNEseparate" : (NO_DNE ? "_noDNE" : "_DNEisvelocity"))
   );
 
   return {

@@ -12,15 +12,15 @@ var utterance_type = utils.get_variable("--utterance");
 var utterance = utterance_type == "Amoving" ? "A moving caused B to move" : "A moved B";
 
 map(function(raw_w) {
-  if (raw_w.a_position == 0) {
+  if (raw_w.a_position == 0 && Math.abs(raw_w.a_velocity)!=1 && Math.abs(raw_w.b_velocity)!=1) {
     var w = {
       a_velocity: raw_w.a_velocity/2,
       b_velocity: raw_w.b_velocity/2,
       position_label: raw_w.a_position==0 ? "AB" : "BA",
       // a_position: raw_w.a_position,
       // b_position: raw_w.b_position,
-      a_exists: true,
-      b_exists: true
+      // a_exists: true,
+      // b_exists: true
     };
     display(w);
     display(l0("silence").score(w));

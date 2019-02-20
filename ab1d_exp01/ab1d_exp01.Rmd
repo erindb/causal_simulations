@@ -1,0 +1,111 @@
+---
+title: "Explanations"
+author: "Erin Bennett"
+header-includes:
+   - \usepackage{tikz}
+   - \usetikzlibrary{bayesnet}
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+rm(list = ls())
+knitr::opts_chunk$set(echo = F, warning = F, cache = F, message = F,
+                      sanitiz = F, fig.width = 5, fig.height = 3)
+```
+
+```{r load_libraries, message=F, warning=F}
+source("../utils.R")
+```
+
+```{r}
+parse_label = function(label, var, val) {
+  data_parts = strsplit(label, "<br/>probability of '.*': ")[[1]]
+  gloss = strsplit(data_parts[[1]], "gloss: ")[[1]][[2]]
+  endorsement = num(data_parts[[2]])
+  # label = strsplit(label, "probability of 'A moved B': ")[[1]][[2]]
+  # s = strsplit(label, "params: \\{\"probs\":\\[")
+  # endorsement = num(s[[1]][[1]])
+  # label = s[[1]][[2]]
+  # probs = strsplit(strsplit(label, "\\]")[[1]][[1]], ",")[[1]] %>% num()
+  # new_var = c("endorsement", "ww", "wh", "hw", "hh")
+  # new_val = c(endorsement, probs)
+  new_var = c("gloss", "endorsement")
+  new_val = c(gloss, endorsement)
+  data.frame(var=c(var, new_var), val=c(val, new_val)) %>%
+    return()
+}
+  results_dir = function(f) {
+    return(paste("~/Projects/causal_simulations/results/", f, sep=""))
+  }
+read_explanations_rs = function(fname) {
+  f = results_dir(fname)
+  d = read_file(f) %>%
+    substring(14) %>%
+    fromJSON()
+  df = d$world$A %>%
+    mutate(ball="A",
+           label=d$label,
+           id=1:length(ball)) %>%
+    rbind(d$world$B %>%
+            mutate(ball="B",
+                   label=d$label,
+                   id=1:length(ball))) %>%
+    gather("var", "val", c(velocity, position)) %>%
+    unite("var", ball, var)
+  df %>% group_by(id) %>%
+    mutate(var = char(var), val = char(val)) %>%
+    do(parse_label(.$label, .$var, .$val)) %>%
+    ungroup() %>%
+    spread(var, val) %>%
+    mutate(A_position = num(A_position),
+           B_position = num(B_position),
+           A_velocity = num(A_velocity),
+           B_velocity = num(B_velocity),
+           endorsement = num(endorsement)) %>%
+    mutate(fname = fname) %>%
+    separate(fname, c("model", "prior", "utterance", "lifted", "nspeeds", "ignore", "stickiness_percent", "dne", "disjoint")) %>%
+    return()
+}
+```
+
+
+```{r}
+df = do.call(rbind, lapply(c(
+  "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_1speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_noDNE.js"
+  # "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
+  # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js"
+  # # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
+  # # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_noDNE.js",
+  # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEisvelocity.js",
+  # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEisvelocity.js",
+  # "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEisvelocity.js",
+  # "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEisvelocity.js"
+  # # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEseparate.js",
+  # # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEseparate.js"
+  ), read_explanations_rs))
+```
+
+```{r, fig.height=2, fig.width=5}
+df %>%
+  ggplot(aes(x=gloss,#paste(gloss, A_velocity, B_velocity),
+             fill=paste(nspeeds, dne, lifted),
+             y=endorsement)) +
+  geom_bar(stat="identity", position="dodge") +
+  facet_wrap(stickiness_percent~utterance) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_hline(yintercept = 0.5, linetype="dashed")
+```
+
+
+```{r, fig.width=10, fig.height=5}
+# df %>%
+#   ggplot(aes(x=A_velocity, y=B_velocity,
+#              colour=endorsement, fill=endorsement)) +
+#   geom_tile() +
+#   facet_wrap(~paste(utterance, nspeeds, dne))
+```
+
+
