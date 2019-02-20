@@ -17,25 +17,26 @@ var ab1d_exp01 = function() {
 
   // WORLD PRIOR
 
-
-  // Number of different velocities is given in input.
-  var n_positions = (
-    utils.get_variable("--positions") ?
-    utils.float(utils.get_variable("--positions")) :
-    2
-  );
   var myrange = function(a, b, c) {
     return map(function(x) {return _.round(x, 2);}, _.range(a, b+c, c));
   }
-  var possible_positions = myrange(0, n_positions-1, 1);//1, 1/(n_positions-1));
-  display("possible positions: " + possible_positions);
+
+  // // Number of different positions is given in input.
+  // var n_positions = (
+  //   utils.get_variable("--positions") ?
+  //   utils.float(utils.get_variable("--positions")) :
+  //   2
+  // );
+  // var possible_positions = myrange(0, n_positions-1, 1);//1, 1/(n_positions-1));
+  // display("possible positions: " + possible_positions);
 
 
 
   // One of two positions: A to the left of B or B to the left of A.
   var positions_fn = function() {
+    return "AB";
     // return uniformDraw(["AB", "BA"]);
-    return uniformDraw([0, 1]);
+    // return uniformDraw([0, 1]);
   }
   var place_object = function(positions, obj) {
     if (positions=="AB") {
@@ -92,18 +93,21 @@ var ab1d_exp01 = function() {
   var prior_functions = {
     a_velocity: velocity_fn,
     b_velocity: velocity_fn,
-    a_position: positions_fn,
-    b_position: positions_fn,
-    a_exists: function() {return true;},
-    b_exists: function() {return true;}
-    // a_exists: flip,
-    // b_exists: flip
+    // a_position: positions_fn,
+    // b_position: positions_fn,
+    position_label: positions_fn,
+    // a_exists: function() {return true;},
+    // b_exists: function() {return true;}
+    a_exists: flip,
+    b_exists: flip
   };
 
   var rewrite_worlds_from_rvs_fn = function(w) {
     return {
-      A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: w.a_position},
-      B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: w.b_position}
+      A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: place_object(w.position_label, "A")},
+      B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: place_object(w.position_label, "B")}
+      // A: {velocity: w.a_exists ? w.a_velocity : "DNE", position: w.a_position},
+      // B: {velocity: w.b_exists ? w.b_velocity : "DNE", position: w.b_position}
     };
   }
 
@@ -181,9 +185,11 @@ var ab1d_exp01 = function() {
   var moved = function(w, obj, counterfactual_world, timing) {
     var relevant_world = timing=="start" ? w : run_physics(w);
     var relevant_velocity = relevant_world[obj].velocity;
+    // This should *presuppose* that the object exists.
     if (relevant_velocity == "DNE") {
-      return false;
-    } else if (relevant_velocity == 0) {
+      display("presupposition error!!");
+    }
+    if (relevant_velocity == 0) {
       return false;
     } else {
       return true;
@@ -260,8 +266,18 @@ var ab1d_exp01 = function() {
       var words = utterance.split(" ");
       var negation = words[0] == "not";
       if (negation) {
+        // "not moved" presupposes "moved"
+        var unnegated_sentence = words.slice(1).join(" ");
+        var ball = words[1];
+        var verb = words.slice(2).join(" ");
+        if (verb == "moved") {
+          if (actual_world[ball].velocity == "DNE") {
+            // make sure that if the ball doesn't exist, the negation of moved is false.
+            return false;
+          }
+        }
         return !meaning(
-          words.slice(1).join(" "),
+          unnegated_sentence,
           actual_world,
           cf_world,
           timing
@@ -269,6 +285,12 @@ var ab1d_exp01 = function() {
       } else {
         var ball = words[0];
         var verb = words.slice(1).join(" ");
+        if (verb == "moved") {
+          if (actual_world[ball].velocity == "DNE") {
+            // make sure that if the ball doesn't exist, moved is false.
+            return false;
+          }
+        }
         var fn = meaning_functions[verb];
         return fn(actual_world, ball, cf_world, timing);
       }
@@ -340,8 +362,8 @@ var ab1d_exp01 = function() {
   var label = (
     "unlifted" +
     "_" + n_speeds + "speeds" +
-    "_s" + stickiness +
-    "_" + n_positions + "positions"
+    "_s" + stickiness //+
+    // "_" + n_positions + "positions"
   );
 
   return {
