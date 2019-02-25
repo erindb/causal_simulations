@@ -269,7 +269,7 @@ var ab1d = function() {
       (relevant_world[obj].velocity) != 0 &&
       (relevant_original_world[obj].velocity != 0)
     );
-    return object_moved_at_all & object_moved_differently;
+    return object_moved_differently; //&&object_moved_at_all
 
   };
 
@@ -369,22 +369,26 @@ var ab1d = function() {
 
   var s1 = cache(function(w) {
     return safe_infer({method: "enumerate"}, function() {
+      var cf_type_premise = sample_cf_type();
+      var cf_type_conclusion = sample_cf_type();
       var utterance = utteranePrior();
-      var interpretation = l0(utterance, question_under_discussion);
-      var factor = (interpretation == "Impossible" ?
+      var interpretation = l0(utterance, cf_type_premise, cf_type_conclusion);
+      var f = (interpretation == "Impossible" ?
         -Infinity :
         interpretation.score(w)
       );
       return {
-        factor: factor,
+        factor: f,
         result: {
-          utterance: utterance
+          utterance: utterance,
+          cf_type_premise: cf_type_premise,
+          cf_type_conclusion: cf_type_conclusion
         }
       }
     });
   });
 
-  var label = ("_unlifted_" + n_velocities + "velocities" +
+  var label = (n_velocities + "velocities" +
       "_s" + stickiness);
 
   return {
