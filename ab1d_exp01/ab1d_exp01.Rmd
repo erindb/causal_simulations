@@ -203,7 +203,32 @@ read_explanations_rs = function(fname) {
 
 df = do.call(rbind, lapply(c(
   "s1_exp01_AmovingcausedBtomove_lifted_1speeds_s0.53_noDNE.js",
-  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_noDNE.js"
+  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_3speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_4speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_5speeds_s0.53_noDNE.js",
+  
+  "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_3speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_5speeds_s0.53_noDNE.js",
+  
+  "s1_exp01_AmovingcausedBtomove_lifted_1speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_3speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_4speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_5speeds_s0.53_DNEisvelocity.js",
+  
+  "s1_exp01_AmovedB_lifted_1speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_lifted_3speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEisvelocity.js",
+  
+  "s1_exp01_AmovedB_unlifted_1speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_unlifted_3speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEisvelocity.js"
   ), read_explanations_rs))
 ```
 
@@ -214,23 +239,25 @@ df = do.call(rbind, lapply(c(
 #   (df_old %>% filter(n %in% c(3)) %>% .$endorsement)) %>% mean()==1
 ```
 
-```{r, fig.width=8, fig.height=2}
+```{r, fig.width=8, fig.height=4}
 df %>%
-  ggplot(aes(x=nspeeds, y=endorsement)) +
-  geom_bar(stat="identity", alpha=1/2) +
+  mutate(params = paste(dne, utterance)) %>%
+  filter(endorsement != 0) %>%
+  ggplot(aes(x=gloss, y=endorsement, fill=nspeeds)) +
+  geom_bar(stat="identity", position="dodge", alpha=1/2) +
   scale_fill_brewer(type="qual", palette = 6) +
   scale_colour_brewer(type="qual", palette = 6) +
-  facet_grid(~gloss) +
+  facet_grid(lifted~params) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylim(0, 1)
-# ggsave(results_dir("endorsement_by_velocity.png"), width=10, height=3)
+ggsave(results_dir("endorsement_by_velocity.png"), width=16, height=8)
 ```
-
 
 Successful!
 
 ### Explanation
 
-As of commit `932ce49`, the `--lifted` parameter wasn't actually lifting the inference of the semantic variables (`cf_premise_type` and `cf_conclusion_type`) up to the S1 level. And it turns out this matters. Commit `` fixes this bug.
+As of commit `932ce49`, the `--lifted` parameter wasn't actually lifting the inference of the semantic variables (`cf_premise_type` and `cf_conclusion_type`) up to the S1 level. And it turns out this matters. Commit `b6d26e2` fixes this bug.
 
 
 

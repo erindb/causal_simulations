@@ -45,3 +45,7 @@ change_names = function(df, new_names) {
   names(df) = new_names
   return(df)
 }
+
+approx_eq = function(a, b, eps=0.0000001) {
+  return(abs(a-b) < eps)
+}
