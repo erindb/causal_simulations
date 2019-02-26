@@ -17,6 +17,140 @@ knitr::opts_chunk$set(echo = F, warning = F, cache = F, message = F,
 source("../utils.R")
 ```
 
+## 2019 Feb 25
+
+Goal: Reproduce old finding that as the number of discretization bins increases, the endorsement of "A moved B" for the `{A: {velocity: 1, position: 0}, B: {velocity: 0, position: 1}}` world gets higher. All other endorsements go down.
+
+```{r}
+parse_label = function(label, var, val) {
+  label = strsplit(label, "probability of 'A moved B': ")[[1]][[2]]
+  s = strsplit(label, "params: \\{\"probs\":\\[")
+  endorsement = num(s[[1]][[1]])
+  label = s[[1]][[2]]
+  probs = strsplit(strsplit(label, "\\]")[[1]][[1]], ",")[[1]] %>% num()
+  new_var = c("endorsement", "ww", "wh", "hw", "hh")
+  new_val = c(endorsement, probs)
+  data.frame(var=c(var, new_var), val=c(val, new_val)) %>%
+    return()
+}
+  results_dir = function(f) {
+    return(paste("~/Projects/causal_simulations/results/2019jan/", f, sep=""))
+  }
+read_explanations_rs = function(n) {
+  f = results_dir(paste("s1_enumeration_AmovedB_", n, "velocities_s0.53.js", sep=""))
+  d = read_file(f) %>%
+    substring(14) %>%
+    fromJSON()
+  df = d$world$A %>%
+    mutate(ball="A",
+           label=d$label,
+           id=1:length(ball)) %>%
+    rbind(d$world$B %>%
+            mutate(ball="B",
+                   label=d$label,
+                   id=1:length(ball))) %>%
+    gather("var", "val", c(velocity, position)) %>%
+    unite("var", ball, var)
+  df %>% group_by(id) %>%
+    do(parse_label(.$label, .$var, .$val)) %>%
+    ungroup() %>%
+    spread(var, val) %>%
+    mutate(n = n) %>%
+    return()
+}
+get_world_name = function(a, b, c, d) {
+  if (a==-1 & b==-1) {
+    return("B follows A")
+  } else if (a==1 & b==1) {
+    return("A follows B")
+  } else if (a==1 & b==0) {
+    return("A hits B")
+  } else if (a==0 & b==-1) {
+    return("B hits A")
+  } else if (a==1 & b==-1) {
+    return("symmetric collision")
+  } else {
+    return("NA")
+  }
+}
+df_old = do.call(rbind, lapply(c(3,5,7,11), read_explanations_rs)) %>%
+  mutate(n = factor(n)) %>%
+  mutate(name = mapply(get_world_name, A_velocity, B_velocity, A_position, B_position))
+```
+
+```{r, fig.width=8, fig.height=2}
+df_old %>%
+  ggplot(aes(x=n, y=endorsement)) +
+  geom_bar(stat="identity", alpha=1/2) +
+  scale_fill_brewer(type="qual", palette = 6) +
+  scale_colour_brewer(type="qual", palette = 6) +
+  facet_grid(~name) +
+  ylim(0, 1)
+# ggsave(results_dir("endorsement_by_velocity.png"), width=10, height=3)
+```
+
+
+```{r}
+# parse_label = function(label, var, val) {
+#   label = strsplit(label, "probability of 'A moved B': ")[[1]][[2]]
+#   s = strsplit(label, "params: \\{\"probs\":\\[")
+#   endorsement = num(s[[1]][[1]])
+#   label = s[[1]][[2]]
+#   probs = strsplit(strsplit(label, "\\]")[[1]][[1]], ",")[[1]] %>% num()
+#   new_var = c("endorsement", "ww", "wh", "hw", "hh")
+#   new_val = c(endorsement, probs)
+#   data.frame(var=c(var, new_var), val=c(val, new_val)) %>%
+#     return()
+# }
+#   results_dir = function(f) {
+#     return(paste("~/Projects/causal_simulations/results/", f, sep=""))
+#   }
+# read_explanations_rs = function(n) {
+#   f = results_dir(paste("s1_enumeration_AmovedB_", n, "velocities_s0.53.js", sep=""))
+#   d = read_file(f) %>%
+#     substring(14) %>%
+#     fromJSON()
+#   df = d$world$A %>%
+#     mutate(ball="A",
+#            label=d$label,
+#            id=1:length(ball)) %>%
+#     rbind(d$world$B %>%
+#             mutate(ball="B",
+#                    label=d$label,
+#                    id=1:length(ball))) %>%
+#     gather("var", "val", c(velocity, position)) %>%
+#     unite("var", ball, var)
+#   df %>% group_by(id) %>%
+#     do(parse_label(.$label, .$var, .$val)) %>%
+#     ungroup() %>%
+#     spread(var, val) %>%
+#     mutate(n = n) %>%
+#     return()
+# }
+# get_world_name = function(a, b, c, d) {
+#   if (a==-1 & b==-1) {
+#     return("B follows A")
+#   } else if (a==1 & b==1) {
+#     return("A follows B")
+#   } else if (a==1 & b==0) {
+#     return("A hits B")
+#   } else if (a==0 & b==-1) {
+#     return("B hits A")
+#   } else if (a==1 & b==-1) {
+#     return("symmetric collision")
+#   } else {
+#     return("NA")
+#   }
+# }
+# df_rep = do.call(rbind, lapply(c(3,5#,7,11
+#                              ), read_explanations_rs)) %>%
+#   mutate(n = factor(n)) %>%
+#   mutate(name = mapply(get_world_name, A_velocity, B_velocity, A_position, B_position))
+# approx_eq((df_rep %>% filter(n %in% c(3,5)) %>% .$endorsement),
+#     (df_old %>% filter(n %in% c(3,5)) %>% .$endorsement)) %>% mean()==1
+```
+
+
 ```{r}
 parse_label = function(label, var, val) {
   data_parts = strsplit(label, "<br/>probability of '.*': ")[[1]]
@@ -66,37 +200,130 @@ read_explanations_rs = function(fname) {
     separate(fname, c("model", "prior", "utterance", "lifted", "nspeeds", "ignore", "stickiness_percent", "dne", "disjoint")) %>%
     return()
 }
+
+df = do.call(rbind, lapply(c(
+  "s1_exp01_AmovingcausedBtomove_lifted_1speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_noDNE.js"
+  ), read_explanations_rs))
+```
+
+```{r}
+# approx_eq(
+#   (df %>% filter(endorsement > 0.5) %>% filter(nspeeds == "1speeds") %>%
+#      .$endorsement),
+#   (df_old %>% filter(n %in% c(3)) %>% .$endorsement)) %>% mean()==1
+```
+
+```{r, fig.width=8, fig.height=2}
+df %>%
+  ggplot(aes(x=nspeeds, y=endorsement)) +
+  geom_bar(stat="identity", alpha=1/2) +
+  scale_fill_brewer(type="qual", palette = 6) +
+  scale_colour_brewer(type="qual", palette = 6) +
+  facet_grid(~gloss) +
+  ylim(0, 1)
+# ggsave(results_dir("endorsement_by_velocity.png"), width=10, height=3)
+```
+
+
+Successful!
+
+### Explanation
+
+As of commit `932ce49`, the `--lifted` parameter wasn't actually lifting the inference of the semantic variables (`cf_premise_type` and `cf_conclusion_type`) up to the S1 level. And it turns out this matters. Commit `` fixes this bug.
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# parse_label = function(label, var, val) {
+#   # data_parts = strsplit(label, "<br/>probability of '.*': ")[[1]]
+#   # gloss = strsplit(data_parts[[1]], "gloss: ")[[1]][[2]]
+#   # endorsement = num(data_parts[[2]])
+#   label = strsplit(label, "probability of 'A moved B': ")[[1]][[2]]
+#   s = strsplit(label, "params: \\{\"probs\":\\[")
+#   endorsement = num(s[[1]][[1]])
+#   label = s[[1]][[2]]
+#   probs = strsplit(strsplit(label, "\\]")[[1]][[1]], ",")[[1]] %>% num()
+#   new_var = c("endorsement", "ww", "wh", "hw", "hh")
+#   new_val = c(endorsement, probs)
+#   # new_var = c("gloss", "endorsement")
+#   # new_val = c(gloss, endorsement)
+#   data.frame(var=c(var, new_var), val=c(val, new_val)) %>%
+#     return()
+# }
+#   results_dir = function(f) {
+#     return(paste("~/Projects/causal_simulations/results/", f, sep=""))
+#   }
+# read_explanations_rs = function(fname) {
+#   f = results_dir(fname)
+#   d = read_file(f) %>%
+#     substring(14) %>%
+#     fromJSON()
+#   df = d$world$A %>%
+#     mutate(ball="A",
+#            label=d$label,
+#            id=1:length(ball)) %>%
+#     rbind(d$world$B %>%
+#             mutate(ball="B",
+#                    label=d$label,
+#                    id=1:length(ball))) %>%
+#     gather("var", "val", c(velocity, position)) %>%
+#     unite("var", ball, var)
+#   df %>% group_by(id) %>%
+#     mutate(var = char(var), val = char(val)) %>%
+#     do(parse_label(.$label, .$var, .$val)) %>%
+#     ungroup() %>%
+#     spread(var, val) %>%
+#     mutate(A_position = num(A_position),
+#            B_position = num(B_position),
+#            A_velocity = num(A_velocity),
+#            B_velocity = num(B_velocity),
+#            endorsement = num(endorsement)) %>%
+#     mutate(fname = fname) %>%
+#     separate(fname, c("model", "prior", "utterance", "lifted", "nspeeds", "ignore", "stickiness_percent", "dne", "disjoint")) %>%
+#     return()
+# }
 ```
 
 
 ```{r}
-df = do.call(rbind, lapply(c(
-  "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
-  "s1_exp01_AmovingcausedBtomove_lifted_1speeds_s0.53_noDNE.js",
-  "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
-  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_noDNE.js"
-  # "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
-  # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js"
-  # # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
-  # # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_noDNE.js",
-  # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEisvelocity.js",
-  # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEisvelocity.js",
-  # "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEisvelocity.js",
-  # "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEisvelocity.js"
-  # # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEseparate.js",
-  # # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEseparate.js"
-  ), read_explanations_rs))
+# df = do.call(rbind, lapply(c(
+#   "s1_enumeration_AmovedB_3velocities_s0.53.js"
+#   # "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js"
+#   # "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
+#   # "s1_exp01_AmovingcausedBtomove_lifted_1speeds_s0.53_noDNE.js",
+#   # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
+#   # "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_noDNE.js"
+#   # "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
+#   # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js"
+#   # # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
+#   # # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_noDNE.js",
+#   # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEisvelocity.js",
+#   # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEisvelocity.js",
+#   # "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEisvelocity.js",
+#   # "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEisvelocity.js"
+#   # # "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEseparate.js",
+#   # # "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEseparate.js"
+#   ), read_explanations_rs))
 ```
 
 ```{r, fig.height=2, fig.width=5}
-df %>%
-  ggplot(aes(x=gloss,#paste(gloss, A_velocity, B_velocity),
-             fill=paste(nspeeds, dne, lifted),
-             y=endorsement)) +
-  geom_bar(stat="identity", position="dodge") +
-  facet_wrap(stickiness_percent~utterance) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  geom_hline(yintercept = 0.5, linetype="dashed")
+# df %>%
+#   ggplot(aes(x=paste(A_velocity, B_velocity),#gloss,#paste(gloss, A_velocity, B_velocity),
+#              fill=lifted,#fname,#paste(nspeeds, dne, lifted),
+#              y=endorsement)) +
+#   geom_bar(stat="identity", position="dodge") +
+#   facet_wrap(stickiness_percent~utterance) +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+#   geom_hline(yintercept = 0.5, linetype="dashed")
 ```
 
 

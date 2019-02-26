@@ -1,4 +1,4 @@
-// webppl s1_AmovedB.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+// webppl s1.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
 
 var AB1D = ab1d_exp01();

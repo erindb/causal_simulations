@@ -11,7 +11,7 @@ map(function(utterance) {
         if ((cf_premise_type && cf_conclusion_type) || (cf_premise_type==false && cf_conclusion_type==false)) {
           var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type)
           var outfile = (
-            "l0_exp01_" + utterance + "_" +
+            "l0_exp01_" + utterance.split(" ").join("") + "_" +
             cf_premise_type + "_" +
             cf_conclusion_type + "_" +
             AB1D.label
@@ -36,12 +36,13 @@ map(function(utterance) {
         }
       }
     // }, ["whether"])
-    // }, [false])
-    }, ["whether", "how", false]);
+    }, [false])
+    // }, ["whether", "how", false]);
   // }, ["whether"])
-  // }, [false])
-  }, ["whether", "how", false]);
-}, ["A moved B"]);
+  }, [false])
+  // }, ["whether", "how", false]);
+}, ["A moving caused B to move"]);
+// }, ["A moved B"]);
 // }, [//"silence", "A moved B"]);
 
 // var utterance = "A moved B";

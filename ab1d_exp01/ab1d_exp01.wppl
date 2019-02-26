@@ -34,8 +34,8 @@ var ab1d_exp01 = function() {
 
   // One of two positions: A to the left of B or B to the left of A.
   var positions_fn = function() {
-    return "AB";
-    // return uniformDraw(["AB", "BA"]);
+    // return "AB";
+    return uniformDraw(["AB", "BA"]);
     // return uniformDraw([0, 1]);
   }
   var place_object = function(positions, obj) {
