@@ -10,8 +10,8 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B follows A<br/>probability of 'A moved B': 0.4998814541217133",
-    "display": false
+    "label": "gloss: B follows A<br/>probability of 'A moved B': 0.7542813709359109",
+    "display": true
   },
   {
     "world": {
@@ -24,7 +24,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B follows A<br/>probability of 'A moved B': 0.5117460798968372",
+    "label": "gloss: B follows A<br/>probability of 'A moved B': 0.776069120520331",
     "display": true
   },
   {
@@ -52,8 +52,8 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.4998814541217133",
-    "display": false
+    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.7656806290228096",
+    "display": true
   },
   {
     "world": {
@@ -66,8 +66,8 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.49373024785054903",
-    "display": false
+    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.7601163466445413",
+    "display": true
   },
   {
     "world": {
@@ -80,7 +80,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B hits A<br/>probability of 'A moved B': 0.6070042063058656",
+    "label": "gloss: B hits A<br/>probability of 'A moved B': 0.8496668715886573",
     "display": true
   },
   {
@@ -94,8 +94,8 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B follows A<br/>probability of 'A moved B': 0.49373024785054903",
-    "display": false
+    "label": "gloss: B follows A<br/>probability of 'A moved B': 0.7481554562494357",
+    "display": true
   },
   {
     "world": {
@@ -122,8 +122,8 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.4998814541217133",
-    "display": false
+    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.7656806290228096",
+    "display": true
   },
   {
     "world": {
@@ -136,8 +136,8 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.49373024785054903",
-    "display": false
+    "label": "gloss: opposite directions<br/>probability of 'A moved B': 0.760116346644541",
+    "display": true
   },
   {
     "world": {
@@ -150,7 +150,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B hits A<br/>probability of 'A moved B': 0.6191245908992148",
+    "label": "gloss: B hits A<br/>probability of 'A moved B': 0.8505725571063663",
     "display": true
   },
   {
@@ -164,7 +164,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B hits A<br/>probability of 'A moved B': 0.6191245908992148",
+    "label": "gloss: B hits A<br/>probability of 'A moved B': 0.8505725571063661",
     "display": true
   },
   {
@@ -192,7 +192,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B moves away from A<br/>probability of 'A moved B': 0.519346293329588",
+    "label": "gloss: B moves away from A<br/>probability of 'A moved B': 0.7678735610246362",
     "display": true
   },
   {
@@ -206,7 +206,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B moves away from A<br/>probability of 'A moved B': 0.5136673031864863",
+    "label": "gloss: B moves away from A<br/>probability of 'A moved B': 0.7624141538265585",
     "display": true
   },
   {
@@ -220,7 +220,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.6246936107686086",
+    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.8508319834080373",
     "display": true
   },
   {
@@ -234,7 +234,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.6246936107686086",
+    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.8508319834080375",
     "display": true
   },
   {
@@ -248,7 +248,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A hits B<br/>probability of 'A moved B': 0.8413808619749987",
+    "label": "gloss: A hits B<br/>probability of 'A moved B': 0.893490300468675",
     "display": true
   },
   {
@@ -262,7 +262,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A follows B<br/>probability of 'A moved B': 0.5113790173129655",
+    "label": "gloss: A follows B<br/>probability of 'A moved B': 0.7385399125018288",
     "display": true
   },
   {
@@ -276,7 +276,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A follows B<br/>probability of 'A moved B': 0.5227105662531282",
+    "label": "gloss: A follows B<br/>probability of 'A moved B': 0.7630693174782226",
     "display": true
   },
   {
@@ -290,7 +290,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.6246936107686086",
+    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.8508319834080373",
     "display": true
   },
   {
@@ -304,7 +304,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.6246936107686086",
+    "label": "gloss: symmetric collision<br/>probability of 'A moved B': 0.8508319834080373",
     "display": true
   },
   {
@@ -318,7 +318,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A hits B<br/>probability of 'A moved B': 0.8413808619749987",
+    "label": "gloss: A hits B<br/>probability of 'A moved B': 0.893490300468675",
     "display": true
   },
   {
@@ -332,7 +332,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A hits B<br/>probability of 'A moved B': 0.6246936107686086",
+    "label": "gloss: A hits B<br/>probability of 'A moved B': 0.8508319834080375",
     "display": true
   },
   {
@@ -346,7 +346,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A follows B<br/>probability of 'A moved B': 0.5055090482501334",
+    "label": "gloss: A follows B<br/>probability of 'A moved B': 0.7315928731364434",
     "display": true
   }
 ]

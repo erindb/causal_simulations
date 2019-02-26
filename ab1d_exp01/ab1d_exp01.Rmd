@@ -224,11 +224,28 @@ df = do.call(rbind, lapply(c(
   "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_lifted_3speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_lifted_5speeds_s0.53_DNEisvelocity.js",
   
   "s1_exp01_AmovedB_unlifted_1speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_unlifted_3speeds_s0.53_DNEisvelocity.js",
-  "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEisvelocity.js"
+  "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_unlifted_5speeds_s0.53_DNEisvelocity.js",
+  
+  "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEseparate.js",
+  
+  "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEisvelocity.js",
+  
+  "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEseparate.js",
+  
+  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_4speeds_s0.53_DNEseparate.js",
+  
+  "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEseparate.js"
   ), read_explanations_rs))
 ```
 
@@ -242,12 +259,17 @@ df = do.call(rbind, lapply(c(
 ```{r, fig.width=8, fig.height=4}
 df %>%
   mutate(params = paste(dne, utterance)) %>%
+  filter(dne=="DNEseparate") %>%
+  mutate(utterance=ifelse(utterance=="AmovedB", "AexistingcausedBtomove",
+                          char(utterance))) %>%
   filter(endorsement != 0) %>%
-  ggplot(aes(x=gloss, y=endorsement, fill=nspeeds)) +
+  ggplot(aes(x=paste(gloss, A_velocity, B_velocity), y=endorsement, fill=nspeeds)) +
+  geom_hline(yintercept = 0.5, linetype="dashed", alpha=1/2) +
   geom_bar(stat="identity", position="dodge", alpha=1/2) +
   scale_fill_brewer(type="qual", palette = 6) +
   scale_colour_brewer(type="qual", palette = 6) +
-  facet_grid(lifted~params) + 
+  facet_grid(lifted~utterance) +
+  # facet_grid(lifted~params) + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylim(0, 1)
 ggsave(results_dir("endorsement_by_velocity.png"), width=16, height=8)
@@ -259,7 +281,12 @@ Successful!
 
 As of commit `932ce49`, the `--lifted` parameter wasn't actually lifting the inference of the semantic variables (`cf_premise_type` and `cf_conclusion_type`) up to the S1 level. And it turns out this matters. Commit `b6d26e2` fixes this bug.
 
+### Notes for next time I pick this up
 
+- 8-speed version is running on `cocoserv2`.
+- position discretization would be nice to explore.
+- difference between Amoving premise and Aexisting premise is that Aexisting allows endorsement for worlds where B hits A to be more than 0.
+- unpack how/whether, especially for slow-moving B being hit by A.
 
 
 

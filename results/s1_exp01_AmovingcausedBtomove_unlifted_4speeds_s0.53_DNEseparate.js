@@ -10,7 +10,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B follows A<br/>probability of 'A moving caused B to move': 0.8155438943761741",
+    "label": "gloss: B follows A<br/>probability of 'A moving caused B to move': 0.7995758325216628",
     "display": true
   },
   {
@@ -24,7 +24,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B follows A<br/>probability of 'A moving caused B to move': 0.802108794955061",
+    "label": "gloss: B follows A<br/>probability of 'A moving caused B to move': 0.7896393327510458",
     "display": true
   },
   {
@@ -52,7 +52,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7580523727543054",
+    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7658882960956708",
     "display": true
   },
   {
@@ -66,7 +66,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7344002343830527",
+    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7548151333583477",
     "display": true
   },
   {
@@ -80,7 +80,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B hits A<br/>probability of 'A moving caused B to move': 0.858709654453849",
+    "label": "gloss: B hits A<br/>probability of 'A moving caused B to move': 0.8573923007675666",
     "display": true
   },
   {
@@ -94,7 +94,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: B follows A<br/>probability of 'A moving caused B to move': 0.802108794955061",
+    "label": "gloss: B follows A<br/>probability of 'A moving caused B to move': 0.7915150019309837",
     "display": true
   },
   {
@@ -122,7 +122,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7580523727543054",
+    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7658882960956708",
     "display": true
   },
   {
@@ -136,7 +136,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7344002343830527",
+    "label": "gloss: opposite directions<br/>probability of 'A moving caused B to move': 0.7548151333583477",
     "display": true
   },
   {
@@ -220,7 +220,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8588819405474807",
+    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8574843445015116",
     "display": true
   },
   {
@@ -234,7 +234,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8588819405474807",
+    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8574843445015118",
     "display": true
   },
   {
@@ -248,7 +248,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A hits B<br/>probability of 'A moving caused B to move': 0.8970888522324828",
+    "label": "gloss: A hits B<br/>probability of 'A moving caused B to move': 0.8955907721898785",
     "display": true
   },
   {
@@ -262,7 +262,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A follows B<br/>probability of 'A moving caused B to move': 0.7585571396630404",
+    "label": "gloss: A follows B<br/>probability of 'A moving caused B to move': 0.7684521560753874",
     "display": true
   },
   {
@@ -276,7 +276,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A follows B<br/>probability of 'A moving caused B to move': 0.7350083903213578",
+    "label": "gloss: A follows B<br/>probability of 'A moving caused B to move': 0.7550870864662502",
     "display": true
   },
   {
@@ -290,7 +290,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8588819405474807",
+    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8574843445015118",
     "display": true
   },
   {
@@ -304,7 +304,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8588819405474807",
+    "label": "gloss: symmetric collision<br/>probability of 'A moving caused B to move': 0.8574843445015118",
     "display": true
   },
   {
@@ -318,7 +318,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A hits B<br/>probability of 'A moving caused B to move': 0.8970888522324828",
+    "label": "gloss: A hits B<br/>probability of 'A moving caused B to move': 0.8955907721898785",
     "display": true
   },
   {
@@ -332,7 +332,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A hits B<br/>probability of 'A moving caused B to move': 0.8588819405474807",
+    "label": "gloss: A hits B<br/>probability of 'A moving caused B to move': 0.8574843445015116",
     "display": true
   },
   {
@@ -346,7 +346,7 @@ var results = [
         "position": 1
       }
     },
-    "label": "gloss: A follows B<br/>probability of 'A moving caused B to move': 0.7350083903213578",
+    "label": "gloss: A follows B<br/>probability of 'A moving caused B to move': 0.7576258073348235",
     "display": true
   }
 ]
