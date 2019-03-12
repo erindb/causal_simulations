@@ -51,6 +51,12 @@ var ab1d_exp01 = function() {
   var DNE_SEPARATE = utils.get_flag("--dne_separate");
   var NO_DNE = utils.get_flag("--no_dne")
 
+  var dne_prob = (
+    utils.get_variable("--dne_prob") ?
+    utils.float(utils.get_variable("--dne_prob")) :
+    0.5
+  );
+
   // Number of different velocities is given in input.
   var n_speeds = (
     utils.get_variable("--speeds") ?
@@ -69,7 +75,8 @@ var ab1d_exp01 = function() {
     // return uniformDraw(
       // possible_speeds.concat(
         // map(function(x) {return -x;}, possible_speeds)));
-    var course_state = uniformDraw(["DNE", "move"]);// "left", "still", "right"]);
+    //var course_state = uniformDraw(["DNE", "move"]);// "left", "still", "right"]);
+    var course_state = flip(dne_prob) ? "DNE" : "move";
     // if (course_state == "left") {
     //   return -1*uniformDraw(possible_speeds);
     // } else if (course_state == "right") {
@@ -376,7 +383,7 @@ var ab1d_exp01 = function() {
     "_" + n_speeds + "speeds" +
     "_s" + stickiness +
     // "_" + n_positions + "positions" +
-    (DNE_SEPARATE ? "_DNEseparate" : (NO_DNE ? "_noDNE" : "_DNEisvelocity"))
+    (DNE_SEPARATE ? ("_DNEseparate" + dne_prob) : (NO_DNE ? "_noDNE" : "_DNEisvelocity"))
   );
 
   return {
