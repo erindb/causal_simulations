@@ -25,7 +25,7 @@ map(function(raw_w) {
     display(w);
     display(l0("silence").score(w));
 
-    var endorsement = endorsement_fn(w, utterance);
+    var endorsement = endorsement_fn(w, utterance, "pragmatic");
 
     var enumeration_label = "gloss: " + raw_w.gloss + "<br/>probability of '" + utterance + "': " + endorsement;
     display(enumeration_label);
