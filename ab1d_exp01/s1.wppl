@@ -12,7 +12,7 @@ var utterance_type = utils.get_variable("--utterance");
 var utterance = utterance_type == "Amoving" ? "A moving caused B to move" : "A moved B";
 
 map(function(raw_w) {
-  if (raw_w.a_position == 0 && Math.abs(raw_w.a_velocity)!=1 && Math.abs(raw_w.b_velocity)!=1) {
+  //if (raw_w.a_position == 0 && Math.abs(raw_w.a_velocity)!=1 && Math.abs(raw_w.b_velocity)!=1) {
     var w = {
       a_velocity: raw_w.a_velocity/2,
       b_velocity: raw_w.b_velocity/2,
@@ -35,7 +35,7 @@ map(function(raw_w) {
     }, rewrite_worlds_from_rvs_fn(w));
 
     utils.write(world_with_DNEs_moved, enumeration_label, endorsement > 0.5);
-  }
+  //}
 }, utils.worlds_to_evaluate);
 
 // writes all worlds to viewable files
