@@ -384,7 +384,9 @@ var ab1d_exp01 = function() {
     endorsement: endorsement,
     s1: speaker,
     label: label,
-    rewrite_worlds_from_rvs_fn: rewrite_worlds_from_rvs_fn
+    rewrite_worlds_from_rvs_fn: rewrite_worlds_from_rvs_fn,
+    "pragmatic_listener": CF.pragmatic_listener,
+    "pragmatic_speaker": CF.pragmatic_speaker
   }
 
 };

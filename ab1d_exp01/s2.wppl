@@ -1,0 +1,45 @@
+// webppl s1.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+
+var AB1D = ab1d_exp01();
+var l0 = AB1D.l0;
+var label = AB1D.label;
+var s1 = AB1D.s1;
+var endorsement_fn = AB1D.endorsement;
+var rewrite_worlds_from_rvs_fn = AB1D.rewrite_worlds_from_rvs_fn;
+
+var utterance_type = utils.get_variable("--utterance");
+var utterance = utterance_type == "Amoving" ? "A moving caused B to move" : "A moved B";
+
+map(function(raw_w) {
+  if (raw_w.a_position == 0 && Math.abs(raw_w.a_velocity)!=1 && Math.abs(raw_w.b_velocity)!=1) {
+    var w = {
+      a_velocity: raw_w.a_velocity/2,
+      b_velocity: raw_w.b_velocity/2,
+      position_label: raw_w.a_position==0 ? "AB" : "BA",
+      // a_position: raw_w.a_position,
+      // b_position: raw_w.b_position,
+      // a_exists: true,
+      // b_exists: true
+    };
+    display(w);
+    display(l0("silence").score(w));
+
+    var endorsement = endorsement_fn(w, utterance);
+
+    var enumeration_label = "gloss: " + raw_w.gloss + "<br/>probability of '" + utterance + "': " + endorsement;
+    display(enumeration_label);
+
+    var world_with_DNEs_moved = mapObject(function(k, v) {
+      return (v.velocity=="DNE") ? {velocity: 0, position: k=="A" ? 10000 : 10010} : v;
+    }, rewrite_worlds_from_rvs_fn(w));
+
+    utils.write(world_with_DNEs_moved, enumeration_label, endorsement > 0.5);
+  }
+}, utils.worlds_to_evaluate);
+
+// writes all worlds to viewable files
+utils.finish(
+  "s1_exp01_" + utterance.split(" ").join("") + "_" + label
+);
+
