@@ -1,4 +1,4 @@
-// webppl s1.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+// webppl s2.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
 
 var AB1D = ab1d_exp01();
@@ -9,7 +9,7 @@ var endorsement_fn = AB1D.endorsement;
 var rewrite_worlds_from_rvs_fn = AB1D.rewrite_worlds_from_rvs_fn;
 
 var utterance_type = utils.get_variable("--utterance");
-var utterance = utterance_type == "Amoving" ? "A moving caused B to move" : "A moved B";
+var utterance = utterance_type == "Amoving" ? "A moving caused B to move" : "A existing caused B to move";
 
 map(function(raw_w) {
   if (raw_w.a_position == 0 && Math.abs(raw_w.a_velocity)!=1 && Math.abs(raw_w.b_velocity)!=1) {
