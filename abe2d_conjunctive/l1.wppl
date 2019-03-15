@@ -1,0 +1,49 @@
+// webppl l1.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+var ABE2D = abe2d_conjunctive();
+var pragmatic_listener = ABE2D.pragmatic_listener;
+var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
+
+var utterance_type = utils.get_variable("--utterance");
+var base_utterance = utterance_type == "EbecauseB" ? "E went through the gate because B existed" : "E went through the gate because A existed";
+display(base_utterance);
+
+map(function(utterance) {
+  var outfile_head = (
+    "l1_conjunctive_" + utterance.split(" ").join("") + "_" +
+    ABE2D.label
+  );
+  var outfile = outfile_head + ".json";
+
+  display(outfile);
+
+  var listener_results = pragmatic_listener(utterance, base_utterance, true);
+
+  display(listener_results);
+
+  if (listener_results != "Impossible") {
+    map(function(rs) {
+      var w = rs.w;
+      var prob = Math.exp(listener_results.score(rs));
+      var keep = true;
+      utils.write(w, prob, keep);
+      return prob;
+    }, (listener_results).support());
+
+    utils.finish(outfile_head)
+  }
+
+  if (listener_results != "Impossible") {
+    utils.write_results(outfile, map(function(rs) {
+      var prob = Math.exp(listener_results.score(rs));
+      return [JSON.stringify(rs), prob]
+      // var label = rs.cf_premise_type + " " + rs.cf_conclusion_type + " " + prob;
+      // var keep = true;
+      // utils.write(rewrite_worlds_from_rvs_fn(rs.world), label, keep);
+      // return prob;
+    }, (listener_results).support()));
+
+  }
+}, [base_utterance]);
+
+display("finished");

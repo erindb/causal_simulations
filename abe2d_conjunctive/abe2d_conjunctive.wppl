@@ -31,7 +31,7 @@ var abe2d_conjunctive = function() {
   var n_angles = (
     utils.get_variable("--angles") ?
     utils.float(utils.get_variable("--angles")) :
-    2
+    3
   );
 
   var angle_fn = function(center_angle) {

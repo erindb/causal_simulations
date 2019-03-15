@@ -38,12 +38,12 @@ map(function(utterance) {
           }
         // }
       }
-    }, ["whether"])
+    // }, ["whether"])
     // }, [false])
-    // }, ["whether", "how", false]);
-  }, ["whether"])
+    }, ["whether", "how", false]);
+  // }, ["whether"])
   // }, [false])
-  // }, ["whether", "how", false]);
+  }, ["whether", "how", false]);
 // }, ["A existing caused B to move"]);
 // }, ["silence"]);
 }, ["E went through the gate because A existed"]);
