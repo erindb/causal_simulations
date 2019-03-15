@@ -17,6 +17,477 @@ knitr::opts_chunk$set(echo = F, warning = F, cache = F, message = F,
 source("../utils.R")
 ```
 
+## 2018 March 11
+
+Speaker shouldn't be inferring semantic variables: doh.
+
+```{r}
+speeds = 2
+lifted = "lifted"
+utterance = "existing"
+get_df = function(orig_df) {
+  speeds = orig_df$speeds[[1]]
+  lifted = orig_df$lifted[[1]]
+  utterance = orig_df$utterance[[1]]
+  f = paste("../results/s2_exp01_A", utterance,
+            "causedBtomove_", lifted, "_",
+            speeds, "speeds_s0.53_DNEseparate0.1.json", sep="")
+  d = read_file(f) %>%
+    paste("[", ., "]") %>%
+    fromJSON()
+  df = d[1:length(d)%%2==1] %>%
+    lapply(as.data.frame) %>%
+    do.call(rbind, .) %>%
+    mutate(probability = d[1:length(d)%%2==0] %>% unlist()) %>%
+    mutate(speeds = speeds, lifted = lifted, utterance = utterance)
+  return(df)
+}
+df = expand.grid(
+  speeds = c(2,4,8),
+  lifted = c("lifted", "unlifted"),
+  utterance = c("moving", "existing")) %>%
+  group_by(speeds, lifted, utterance) %>%
+  do(get_df(.)) %>%
+  ungroup()
+```
+
+```{r}
+df %>%
+  filter(position_label == "AB") %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=w, y=probability, fill=speeds)) +
+  geom_bar(stat="identity", position="dodge") +
+  scale_fill_brewer(type="qual", palette = 6) +
+  scale_colour_brewer(type="qual", palette = 6) +
+  facet_grid(lifted ~ utterance) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylim(0, 1)
+```
+
+```{r}
+get_gloss = function(a, b) {
+  if (a == -b) {
+    return(paste("symmetric collision (", a, ")", sep=""))
+  } else if (a == b) {
+    if (a > 0) {
+      return(paste("A follows B (", a, ")", sep=""))
+    } else if (a < 0) {
+      return(paste("B follows A (", a, ")", sep=""))
+    } else {
+      return("no movement")
+    }
+  } else if (sign(a)==-1 & sign(b)==1) {
+    return(paste("opposite directions (", a, ", ", b, ")", sep=""))
+  } else if (abs(a) > abs(b)) {
+    return(paste("A hits B (", a, ", ", b, ")", sep=""))
+  } else {
+    return(paste("B hits A (", a, ", ", b, ")", sep=""))
+  }
+}
+get_gloss = function(a, b) {
+  if (a == -b) {
+    if (a > 0) {
+      return("symmetric collision")
+    } else if (a < 0) {
+      return("opposite directions")
+    } else {
+      return("no movement")
+    }
+  } else if (a == b) {
+    if (a > 0) {
+      return("A follows B")
+    } else if (a < 0) {
+      return("B follows A")
+    } else {
+      return("no movement")
+    }
+  } else if (a==0 & sign(b)==1) {
+    return("B moves away from A")
+  } else if (b==0 & sign(a)==-1) {
+    return("A moves away from B")
+  }else if ((sign(a)==-1) & (sign(b)==1)) {
+    return("opposite directions")
+  } else if (abs(a) > abs(b)) {
+    return("A hits B")
+  } else {
+    return("B hits A")
+  }
+}
+df %>%
+  filter(position_label == "AB") %>%
+  filter(speeds == 4) %>%
+  filter(probability != 0) %>%
+  mutate(gloss = mapply(get_gloss, a_velocity, b_velocity)) %>%
+  mutate(world = paste(gloss, "(", a_velocity, ", ", b_velocity, ")", sep="")) %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=world, y=probability, 
+             # fill=speeds)) +
+             colour=gloss)) +
+  # geom_bar(stat="identity"#, position="dodge"
+  #          ) +
+  geom_point() +
+  # scale_fill_brewer(type="qual", palette = 6) +
+  # scale_colour_brewer(type="qual", palette = 6) +
+  facet_grid(lifted ~ utterance, scales="free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r, fig.width=15, fig.height=3}
+df %>%
+  filter(utterance == "existing") %>%
+  filter(lifted == "lifted") %>%
+  filter(position_label == "AB") %>%
+  filter(a_velocity %in% c(-1, 0, 1), b_velocity%in%c(-1, 0, 1)) %>%
+  filter(probability != 0) %>%
+  mutate(gloss = mapply(get_gloss, a_velocity, b_velocity)) %>%
+  mutate(world = paste(gloss, "(", a_velocity, ", ", b_velocity, ")", sep="")) %>%
+  mutate(gloss = factor(gloss, levels=c(
+    "A hits B",
+    "symmetric collision",
+    "B hits A",
+    "A follows B",
+    "B moves away from A",
+    "B follows A",
+    "A moves away from B",
+    "opposite directions"
+  ))) %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=speeds, y=probability)) +#, colour=w)) +
+  geom_line(aes(group=gloss)) +
+  geom_point() +
+  # geom_bar(stat="identity", alpha=1/2) +
+  facet_grid( ~ gloss, scales="free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("s2, existing, lifted, AB")
+ggsave("s2_diff_speeds.png", width=15, height=3)
+```
+
+```{r, fig.width=5, fig.height=3}
+df %>%
+  filter(speeds == 8) %>%
+  filter(utterance == "existing") %>%
+  filter(lifted == "lifted") %>%
+  filter(position_label == "AB") %>%
+  filter(a_velocity %in% c(-1, 0, 1), b_velocity%in%c(-1, 0, 1)) %>%
+  filter(probability != 0) %>%
+  mutate(gloss = mapply(get_gloss, a_velocity, b_velocity)) %>%
+  mutate(world = paste(gloss, "(", a_velocity, ", ", b_velocity, ")", sep="")) %>%
+  mutate(gloss = factor(gloss, levels=c(
+    "A hits B",
+    "symmetric collision",
+    "B hits A",
+    "A follows B",
+    "B moves away from A",
+    "B follows A",
+    "A moves away from B",
+    "opposite directions"
+  ))) %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  # mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=gloss, y=probability)) +#, colour=w)) +
+  # geom_line(aes(group=gloss)) +
+  # geom_point() +
+  geom_bar(stat="identity", alpha=1/2) +
+  # facet_grid( ~ gloss, scales="free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("s2, existing, lifted, AB")
+ggsave("s2.png", width=5, height=3)
+```
+
+```{r, fig.width=5, fig.height=3}
+df %>%
+  filter(speeds == 8) %>%
+  filter(utterance == "existing") %>%
+  filter(position_label == "AB") %>%
+  filter(a_velocity %in% c(-1, 0, 1), b_velocity%in%c(-1, 0, 1)) %>%
+  filter(probability != 0) %>%
+  mutate(gloss = mapply(get_gloss, a_velocity, b_velocity)) %>%
+  mutate(world = paste(gloss, "(", a_velocity, ", ", b_velocity, ")", sep="")) %>%
+  mutate(gloss = factor(gloss, levels=c(
+    "A hits B",
+    "symmetric collision",
+    "B hits A",
+    "A follows B",
+    "B moves away from A",
+    "B follows A",
+    "A moves away from B",
+    "opposite directions"
+  ))) %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  # mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=gloss, y=probability, fill=lifted, colour=lifted)) +#, colour=w)) +
+  # geom_line(aes(group=gloss)) +
+  # geom_point() +
+  geom_bar(stat="identity", alpha=1/2, position="dodge") +
+  scale_color_solarized() +
+  scale_fill_solarized() +
+  # facet_grid( ~ gloss, scales="free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("s2, existing, lifted, AB")
+ggsave("s2_lifted_vs_unlifted_bar.png", width=5, height=3)
+```
+
+```{r, fig.width=15, fig.height=5}
+df %>%
+  filter(utterance == "existing") %>%
+  # filter(lifted == "lifted") %>%
+  filter(position_label == "AB") %>%
+  filter(a_velocity %in% c(-1, 0, 1), b_velocity%in%c(-1, 0, 1)) %>%
+  filter(probability != 0) %>%
+  mutate(gloss = mapply(get_gloss, a_velocity, b_velocity)) %>%
+  mutate(world = paste(gloss, "(", a_velocity, ", ", b_velocity, ")", sep="")) %>%
+  mutate(gloss = factor(gloss, levels=c(
+    "A hits B",
+    "symmetric collision",
+    "B hits A",
+    "A follows B",
+    "B moves away from A",
+    "B follows A",
+    "A moves away from B",
+    "opposite directions"
+  ))) %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=speeds, y=probability)) +#, colour=w)) +
+  geom_line(aes(group=gloss)) +
+  geom_point() +
+  # geom_bar(stat="identity", alpha=1/2) +
+  facet_grid(lifted ~ gloss, scales="free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("s2, existing, AB")
+ggsave("s2_diff_speeds_lifted.png", width=15, height=5)
+```
+
+```{r, fig.width=15, fig.height=5}
+df %>%
+  # filter(utterance == "existing") %>%
+  filter(lifted == "lifted") %>%
+  filter(position_label == "AB") %>%
+  filter(a_velocity %in% c(-1, 0, 1), b_velocity%in%c(-1, 0, 1)) %>%
+  filter(probability != 0) %>%
+  mutate(gloss = mapply(get_gloss, a_velocity, b_velocity)) %>%
+  mutate(world = paste(gloss, "(", a_velocity, ", ", b_velocity, ")", sep="")) %>%
+  mutate(gloss = factor(gloss, levels=c(
+    "A hits B",
+    "symmetric collision",
+    "B hits A",
+    "A follows B",
+    "B moves away from A",
+    "B follows A",
+    "A moves away from B",
+    "opposite directions"
+  ))) %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=speeds, y=probability)) +#, colour=w)) +
+  geom_line(aes(group=gloss)) +
+  geom_point() +
+  # geom_bar(stat="identity", alpha=1/2) +
+  facet_grid(utterance ~ gloss, scales="free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("s2, existing, lifted, AB")
+ggsave("s2_diff_speeds_utterance.png", width=15, height=5)
+```
+
+```{r, fig.width=10, fig.height=2.5}
+df %>%
+  filter(utterance == "existing") %>%
+  filter(lifted == "lifted") %>%
+  filter(position_label == "AB") %>%
+  filter(a_velocity == 1, b_velocity%in%c(-1, -0.5, 0, 0.5, 1)) %>%
+  filter(probability != 0) %>%
+  mutate(gloss = mapply(get_gloss, a_velocity, b_velocity)) %>%
+  mutate(world = paste(gloss, " (", a_velocity, ", ", b_velocity, ")", sep="")) %>%
+  mutate(gloss = factor(gloss, levels=c(
+    "A hits B",
+    "symmetric collision",
+    "B hits A",
+    "A follows B",
+    "B moves away from A",
+    "B follows A",
+    "A moves away from B",
+    "opposite directions"
+  ))) %>%
+  mutate(world = factor(world, levels=c(
+    "symmetric collision (1, -1)",
+    "A hits B (1, -0.5)",
+    "A hits B (1, 0)",
+    "A hits B (1, 0.5)",
+    "A follows B (1, 1)"
+  ))) %>%
+  mutate(w = paste(a_velocity, b_velocity)) %>%
+  mutate(speeds = factor(speeds)) %>%
+  ggplot(aes(x=speeds, y=probability)) +#, colour=w)) +
+  geom_line(aes(group=world)) +
+  geom_point() +
+  # geom_bar(stat="identity", alpha=1/2) +
+  facet_grid(utterance ~ world, scales="free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("s2, existing, lifted, AB")
+ggsave("s2_b_velocity_varies.png", width=10, height=2.5)
+```
+
+```{r}
+speeds = 2
+lifted = "lifted"
+utterance = "existing"
+get_l1 = function(orig_df) {
+  speeds = orig_df$speeds[[1]]
+  lifted = orig_df$lifted[[1]]
+  utterance = orig_df$utterance[[1]]
+  f = paste("../results/l1_exp01_A", utterance,
+            "causedBtomove_", lifted, "_",
+            speeds, "speeds_s0.53_DNEseparate0.1.json", sep="")
+  d = read_file(f) %>%
+    paste("[", ., "]") %>%
+    fromJSON()
+  df = d[1:length(d)%%2==1] %>%
+    lapply(as.data.frame) %>%
+    do.call(rbind, .) %>%
+    mutate(probability = d[1:length(d)%%2==0] %>% unlist()) %>%
+    mutate(speeds = speeds, lifted = lifted, utterance = utterance)
+  return(df)
+}
+l1 = expand.grid(
+  speeds = c(2,4,8),
+  lifted = c("lifted", "unlifted"),
+  utterance = c("moving", "existing")) %>%
+  group_by(speeds, lifted, utterance) %>%
+  do(get_l1(.)) %>%
+  ungroup()
+```
+
+```{r, fig.width=8, fig.height=4}
+l1 %>%
+  filter(lifted == "lifted") %>%
+  # filter(speeds == 4) %>%
+  group_by(speeds, lifted, utterance, cf_premise_type, cf_conclusion_type) %>%
+  summarise(probability = sum(probability)) %>%
+  filter(!is.na(cf_premise_type)) %>%
+  ggplot(aes(x=cf_premise_type, y=cf_conclusion_type, fill=probability, label=round(probability, 3))) +
+  geom_tile() +
+  geom_text() +
+  facet_grid(utterance ~ speeds)
+```
+
+```{r}
+l1 %>%
+  filter(!is.na(cf_premise_type)) %>%
+  mutate(cf_type = paste(cf_premise_type, cf_conclusion_type)) %>%
+  mutate(cf_type = factor(cf_type, levels=c("whether whether", "how whether",
+                                            "whether how", "how how"))) %>%
+  group_by(utterance, lifted, speeds, w.a_velocity, w.b_velocity, w.position_label) %>%
+  mutate(conditional_probability = probability / sum(probability)) %>%
+  ungroup() %>%
+  # ggplot(aes(x=conditional_probability)) +
+  # geom_histogram() +
+  # facet_wrap(~cf_type)
+  # ggplot(aes(x=cf_type, y=conditional_probability)) +
+  ggplot(aes(x=cf_type, y=probability)) +
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange")
+```
+
+
+
+```{r}
+l1 %>%
+  filter(!is.na(cf_premise_type)) %>%
+  mutate(cf_type = paste(cf_premise_type, cf_conclusion_type)) %>%
+  mutate(cf_type = factor(cf_type, levels=c(
+    "whether whether", "how whether",
+    "whether how", "how how"))) %>%
+  group_by(utterance, lifted, speeds, w.a_velocity, w.b_velocity, w.position_label) %>%
+  mutate(conditional_probability = probability / sum(probability)) %>%
+  ungroup() %>%
+  # ggplot(aes(x=conditional_probability)) +
+  # geom_histogram() +
+  # facet_wrap(~cf_type)
+  # ggplot(aes(x=cf_type, y=conditional_probability)) +
+  ggplot(aes(x=cf_type, y=probability)) +
+  facet_wrap(~lifted) + 
+  stat_summary(fun.data="mean_cl_boot", geom="pointrange")
+```
+
+
+
+```{r, fig.width=5, fig.height=3}
+l1 %>%
+  filter(!is.na(cf_premise_type)) %>%
+  mutate(cf_type = paste(cf_premise_type, cf_conclusion_type)) %>%
+  mutate(cf_type = factor(cf_type, levels=c("whether whether", "how whether",
+                                            "whether how", "how how"))) %>%
+  group_by(utterance, lifted, speeds, cf_type, cf_premise_type, cf_conclusion_type) %>%
+  summarise(probability = sum(probability)) %>%
+  filter(lifted == "lifted", utterance == "existing", speeds==4) %>%
+  ggplot(aes(x=cf_premise_type, y=cf_conclusion_type, fill=probability, label=round(probability, 3))) +
+  geom_tile() +
+  geom_text() +
+  # ggplot(aes(x=cf_type, y=probability)) +
+  # theme(axis.text.x = element_text(angle = -45, hjust = 0)) +
+  # facet_wrap(speeds~utterance) +
+  # geom_bar(stat="identity") +
+  # geom_point() +
+  ggtitle("existing, 4, lifted, marginalizing over worlds")
+ggsave("how_vs_whether_overall.png", width=5, height=3)
+```
+
+
+
+specifically, what are the how/whether probabilities for 1 0.5, where B was already moving without A's intervention?
+
+```{r, fig.width=9, fig.height=2.5}
+l1 %>% filter(w.a_velocity == 1,
+              #w.a_velocity %in% c(-1, 0.5, 1),
+              w.b_velocity %in% c(-1, -0.5, 0, 0.5, 1),
+              w.position_label == "AB") %>%
+  filter(speeds == 4, utterance == "existing", lifted == "lifted") %>%
+  ggplot(aes(x=cf_premise_type, y=cf_conclusion_type, fill=probability)) +
+  geom_tile() +
+  facet_grid(w.a_velocity~w.b_velocity) +
+  ggtitle("'How' vs 'whether' as B's velocity varies (A's velocity = 1)")
+ggsave("how_vs_whether_a1.0.png", width=9, height=2.5)
+```
+
+
+what is the listener's distribution over worlds for lifted and unlifted?
+
+```{r, fig.width=6, fig.height=3}
+l1 %>%
+  filter(utterance == "existing", speeds == 4) %>%
+  filter(w.position_label == "AB") %>%
+  group_by(utterance, speeds, lifted, w.a_velocity, w.b_velocity) %>%
+  summarise(probability = sum(probability)) %>%
+  ungroup() %>%
+  complete(lifted, w.a_velocity, w.b_velocity,
+           fill=list(probability=0)) %>%
+  ggplot(aes(x=w.a_velocity, y=w.b_velocity, fill=probability)) +
+  geom_tile() +
+  facet_wrap(~lifted) +
+  ggtitle("4, existing")
+ggsave("l1_lifted_vs_unlifted.png", width=6, height=3)
+```
+
+
+```{r, fig.width=4, fig.height=3}
+l1 %>%
+  filter(lifted == "lifted",
+         utterance == "existing",
+         speeds == 4) %>%
+  filter(w.position_label == "AB") %>%
+  group_by(utterance, speeds, w.a_velocity, w.b_velocity) %>%
+  summarise(probability = sum(probability)) %>%
+  ungroup() %>%
+  complete(w.a_velocity, w.b_velocity,
+           fill=list(probability=0)) %>%
+  ggplot(aes(x=w.a_velocity, y=w.b_velocity, fill=probability)) +
+  geom_tile() +
+  ggtitle("4, existing, lifted")
+ggsave("l1.png", width=4, height=3)
+```
+
 ## 2019 Feb 25
 
 Goal: Reproduce old finding that as the number of discretization bins increases, the endorsement of "A moved B" for the `{A: {velocity: 1, position: 0}, B: {velocity: 0, position: 1}}` world gets higher. All other endorsements go down.
@@ -207,6 +678,7 @@ df = do.call(rbind, lapply(c(
   "s1_exp01_AmovingcausedBtomove_lifted_3speeds_s0.53_noDNE.js",
   "s1_exp01_AmovingcausedBtomove_lifted_4speeds_s0.53_noDNE.js",
   "s1_exp01_AmovingcausedBtomove_lifted_5speeds_s0.53_noDNE.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_8speeds_s0.53_noDNE.js",
   
   "s1_exp01_AmovingcausedBtomove_unlifted_1speeds_s0.53_noDNE.js",
   "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_noDNE.js",
@@ -219,12 +691,14 @@ df = do.call(rbind, lapply(c(
   "s1_exp01_AmovingcausedBtomove_lifted_3speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovingcausedBtomove_lifted_4speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovingcausedBtomove_lifted_5speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_8speeds_s0.53_DNEisvelocity.js",
   
   "s1_exp01_AmovedB_lifted_1speeds_s0.53_DNEisvelocity.js",
-  "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEisvelocity.js",
+  # "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_lifted_3speeds_s0.53_DNEisvelocity.js",
-  "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEisvelocity.js",
+  # "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_lifted_5speeds_s0.53_DNEisvelocity.js",
+  # "s1_exp01_AmovedB_lifted_8speeds_s0.53_DNEisvelocity.js",
   
   "s1_exp01_AmovedB_unlifted_1speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEisvelocity.js",
@@ -234,18 +708,29 @@ df = do.call(rbind, lapply(c(
   
   "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEseparate.js",
   "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovedB_lifted_8speeds_s0.53_DNEseparate.js",
   
   "s1_exp01_AmovedB_lifted_2speeds_s0.53_DNEisvelocity.js",
   "s1_exp01_AmovedB_lifted_4speeds_s0.53_DNEisvelocity.js",
+  "s1_exp01_AmovedB_lifted_8speeds_s0.53_DNEisvelocity.js",
   
   "s1_exp01_AmovedB_unlifted_2speeds_s0.53_DNEseparate.js",
   "s1_exp01_AmovedB_unlifted_4speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovedB_unlifted_8speeds_s0.53_DNEseparate.js",
   
   "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_DNEseparate.js",
   "s1_exp01_AmovingcausedBtomove_lifted_4speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_8speeds_s0.53_DNEseparate.js",
   
   "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEseparate.js",
-  "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEseparate.js"
+  "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEseparate.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_8speeds_s0.53_DNEseparate.js",
+  
+  "s1_exp01_AmovingcausedBtomove_lifted_2speeds_s0.53_DNEseparate0.1.js",
+  "s1_exp01_AmovingcausedBtomove_lifted_4speeds_s0.53_DNEseparate0.1.js",
+  
+  "s1_exp01_AmovingcausedBtomove_unlifted_2speeds_s0.53_DNEseparate0.1.js",
+  "s1_exp01_AmovingcausedBtomove_unlifted_4speeds_s0.53_DNEseparate0.1.js"
   ), read_explanations_rs))
 ```
 
@@ -259,20 +744,23 @@ df = do.call(rbind, lapply(c(
 ```{r, fig.width=8, fig.height=4}
 df %>%
   mutate(params = paste(dne, utterance)) %>%
-  filter(dne=="DNEseparate") %>%
+  filter(A_velocity %in% c(-1, 0, 1)) %>%
+  filter(B_velocity %in% c(-1, 0, 1)) %>%
+  # filter(nspeeds %in% paste(c(2,4,8), "speeds", sep="")) %>%
   mutate(utterance=ifelse(utterance=="AmovedB", "AexistingcausedBtomove",
                           char(utterance))) %>%
   filter(endorsement != 0) %>%
-  ggplot(aes(x=paste(gloss, A_velocity, B_velocity), y=endorsement, fill=nspeeds)) +
+  ggplot(aes(x=gloss, y=endorsement, fill=nspeeds, colour=nspeeds)) +
   geom_hline(yintercept = 0.5, linetype="dashed", alpha=1/2) +
-  geom_bar(stat="identity", position="dodge", alpha=1/2) +
+  geom_bar(stat="identity", position="dodge"#, alpha=1/2
+           ) +
   scale_fill_brewer(type="qual", palette = 6) +
   scale_colour_brewer(type="qual", palette = 6) +
-  facet_grid(lifted~utterance) +
+  facet_grid(lifted~params) +
   # facet_grid(lifted~params) + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   ylim(0, 1)
-ggsave(results_dir("endorsement_by_velocity.png"), width=16, height=8)
+ggsave(results_dir("endorsement_by_velocity.png"), width=20, height=8)
 ```
 
 Successful!
@@ -283,10 +771,137 @@ As of commit `932ce49`, the `--lifted` parameter wasn't actually lifting the inf
 
 ### Notes for next time I pick this up
 
-- 8-speed version is running on `cocoserv2`.
 - position discretization would be nice to explore.
 - difference between Amoving premise and Aexisting premise is that Aexisting allows endorsement for worlds where B hits A to be more than 0.
 - unpack how/whether, especially for slow-moving B being hit by A.
+
+
+```{r, fig.width=8, fig.height=4}
+df %>%
+  filter(utterance == "AmovingcausedBtomove") %>%
+  filter(dne == "DNEseparate0") %>%
+  filter(lifted == "lifted") %>%
+  filter(endorsement != 0) %>%
+  filter(A_velocity %in% c(-1, 0, 1)) %>%
+  filter(B_velocity %in% c(-1, 0, 1)) %>%
+  filter(nspeeds %in% paste(c(2,4,8), "speeds", sep="")) %>%
+  ggplot(aes(x=gloss, y=endorsement, fill=nspeeds, colour=nspeeds)) +
+  geom_hline(yintercept = 0.5, linetype="dashed", alpha=1/2) +
+  geom_bar(stat="identity", position="dodge", alpha=1/2) +
+  scale_fill_brewer(type="qual", palette = 6) +
+  scale_colour_brewer(type="qual", palette = 6) +
+  facet_grid(~lifted) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylim(0, 1)
+ggsave(results_dir("velocity.png"), width=12, height=5)
+```
+
+
+```{r, fig.width=8, fig.height=4}
+df %>%
+  filter(utterance == "AmovingcausedBtomove") %>%
+  filter(dne == "DNEseparate0") %>%
+  filter(endorsement != 0) %>%
+  filter(A_velocity %in% c(-1, 0, 1)) %>%
+  filter(B_velocity %in% c(-1, 0, 1)) %>%
+  filter(nspeeds %in% paste(c(2,4,8), "speeds", sep="")) %>%
+  ggplot(aes(x=gloss, y=endorsement, fill=nspeeds, colour=nspeeds)) +
+  geom_hline(yintercept = 0.5, linetype="dashed", alpha=1/2) +
+  geom_bar(stat="identity", position="dodge", alpha=1/2) +
+  scale_fill_brewer(type="qual", palette = 6) +
+  scale_colour_brewer(type="qual", palette = 6) +
+  facet_grid(~lifted) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylim(0, 1)
+ggsave(results_dir("liftedness.png"), width=12, height=5)
+```
+
+```{r, fig.width=8, fig.height=4}
+df %>%
+  filter(utterance == "AmovingcausedBtomove") %>%
+  filter(lifted == "lifted") %>%
+  filter(endorsement != 0) %>%
+  filter(A_velocity %in% c(-1, 0, 1)) %>%
+  filter(B_velocity %in% c(-1, 0, 1)) %>%
+  # filter(nspeeds == "2speeds") %>%
+  filter(nspeeds %in% c("2speeds", "4speeds")) %>%
+  mutate(dne = factor(
+    dne,
+    levels=c("noDNE", "DNEseparate0", "DNEseparate", "DNEisvelocity"),
+    labels=c("Always exist", "Constant probability (0.1) of not existing", "Constant probability (0.5) of not existing", "Nonexistence is a 'velocity' state"))) %>%
+  mutate(utterance=ifelse(utterance=="AmovedB", "AexistingcausedBtomove",
+                          char(utterance))) %>%
+  # filter(endorsement != 0) %>%
+  # ggplot(aes(x=gloss, y=endorsement, fill=paste(A_velocity, B_velocity))) +
+  ggplot(aes(x=gloss, y=endorsement, fill=nspeeds, colour=nspeeds)) +
+  geom_hline(yintercept = 0.5, linetype="dashed", alpha=1/2) +
+  geom_bar(stat="identity", position="dodge", alpha=1/2) +
+  # geom_line(aes(group=dne), alpha=1/2, colour="black") +
+  # geom_point(#position=position_dodge(0.5), 
+    #alpha=1/2, 
+    # size=2) +
+  scale_fill_brewer(type="qual", palette = 6) +
+  scale_colour_brewer(type="qual", palette = 6) +
+  facet_grid(~dne) +
+  # facet_grid(lifted~params) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("\"A moving caused B to move\"") +
+  ylim(0, 1)
+ggsave(results_dir("dne.png"), width=16, height=6)
+```
+
+```{r}
+fname = "archive/l0_exp01_AmovedB_false_false_unlifted_4speeds_s0.53_DNEseparate.js"
+fpath = paste("../results/", fname, sep="")
+d = read_file(fpath) %>%
+  substring(14) %>%
+  fromJSON()
+df = data.frame(
+  A_velocity = d$world$A$velocity,
+  A_position = d$world$A$position,
+  B_velocity = d$world$B$velocity,
+  B_position = d$world$B$position,
+  probability = num(d$label))
+df %>%
+  filter(A_position==0 & B_position==1) %>%
+  select(A_velocity, B_velocity, probability) %>%
+  rbind(data.frame(A_velocity=0, B_velocity=0, probability = 0)) %>%
+  complete(A_velocity, B_velocity, fill=list(probability=0)) %>%
+  ggplot(aes(x=A_velocity, y=B_velocity, fill=probability)) +
+  geom_tile()
+ggsave("../results/l0.png", width=8, height=5)
+```
+
+
+```{r}
+
+
+
+
+  df = d$world$A %>%
+    mutate(ball="A",
+           label=d$label,
+           id=1:length(ball)) %>%
+    rbind(d$world$B %>%
+            mutate(ball="B",
+                   label=d$label,
+                   id=1:length(ball))) %>%
+    gather("var", "val", c(velocity, position)) %>%
+    unite("var", ball, var)
+  df %>% group_by(id) %>%
+    mutate(var = char(var), val = char(val)) %>%
+    do(parse_label(.$label, .$var, .$val)) %>%
+    ungroup() %>%
+    spread(var, val) %>%
+    mutate(A_position = num(A_position),
+           B_position = num(B_position),
+           A_velocity = num(A_velocity),
+           B_velocity = num(B_velocity),
+           endorsement = num(endorsement)) %>%
+    mutate(fname = fname) %>%
+    separate(fname, c("model", "prior", "utterance", "lifted", "nspeeds", "ignore", "stickiness_percent", "dne", "disjoint")) %>%
+    return()
+```
 
 
 

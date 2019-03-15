@@ -132,7 +132,7 @@ var get_trial_variables = function() {
   return all_trial_variables;
 };
 
-// worlds_to_evaluate.js
+// // worlds_to_evaluate.js
 // console.log(JSON.stringify(_.map(get_trial_variables(), function(x) {
 //   return _.pick(x, ["a_velocity", "a_position", "b_velocity", "b_position", "gloss"])
 // }), null, 2));
@@ -156,7 +156,7 @@ $(document).ready(function() {
     stimulus: $("#trial").html(),
     stimulus_duration: 1000,
     choices: ["f", "j"],
-    timeline: get_trial_variables(),
+    timeline: get_trial_variables().slice(0,5),
     response_ends_trial: false,
     on_load: function() {
       $(".ball_a_caps").html(this.ball_a_caps);
