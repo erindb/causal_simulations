@@ -351,6 +351,7 @@ var abe2d_conjunctive = function() {
   var speaker = CF.speaker;
   var prior_sampler = CF.prior_sampler;
   var cf_sampler = CF.cf_sampler;
+  var pragmatic_speaker = CF.pragmatic_speaker;
 
   // var w = prior_sampler();
   // display(w);
@@ -372,6 +373,7 @@ var abe2d_conjunctive = function() {
     l0: literal_listener,
     endorsement: endorsement,
     s1: speaker,
+    s2: pragmatic_speaker,
     run_physics: run_physics,
     label: label,
     rewrite_worlds_from_rvs_fn: rewrite_worlds_from_rvs_fn,

@@ -1,10 +1,9 @@
 // webppl s2.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
-
 var ABE2D = abe2d_conjunctive();
 var l0 = ABE2D.l0;
 var label = ABE2D.label;
-var s1 = ABE2D.s1;
+var s2 = ABE2D.s2;
 var endorsement_fn = ABE2D.endorsement;
 var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
 
@@ -37,7 +36,7 @@ display(l0("silence").score(w));
 if (utterance_type == "endorsements") {
 
   map(function(utterance) {
-    var endorsement = endorsement_fn(w, utterance, "S1");
+    var endorsement = endorsement_fn(w, utterance, "pragmatic");
 
     var enumeration_label = "probability of '" + utterance + "': " + endorsement;
     display(enumeration_label);
@@ -51,14 +50,13 @@ if (utterance_type == "endorsements") {
 
 } else {
   // choose between A and B
-  var s1_dist = s1(w, utteranceA + "|||" + utteranceB + "|||silence");
+  var s2_dist = s2(w, utteranceA + "|||" + utteranceB + "|||silence");
   display(map(function(u) {
-    return [u, Math.round(Math.exp(s1_dist.score(u))*100)/100];
-  }, s1_dist.support()))
+    return [u, Math.round(Math.exp(s2_dist.score(u))*100)/100];
+  }, s2_dist.support()))
 }
 
 // writes all worlds to viewable files
 utils.finish(
-  "s1_conjunctive_" + utterance_type.split(" ").join("") + "_" + label
+  "s2_conjunctive_" + utterance_type.split(" ").join("") + "_" + label
 );
-
