@@ -3,3 +3,4 @@ node_modules/utils/node_modules
 results
 *.png
 *.html
+*.pyc

@@ -1,0 +1,62 @@
+// webppl l0.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+var ABE2D = abe2d_conjunctive();
+var l0 = ABE2D.l0;
+var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
+var run_physics = ABE2D.run_physics;
+
+map(function(utterance) {
+  map(function(cf_premise_type) {
+    map(function(cf_conclusion_type) {
+      // if (utterance!="silence" || (cf_premise_type=="how" && cf_conclusion_type=="how")) {
+        if ((cf_premise_type && cf_conclusion_type) || (cf_premise_type==false && cf_conclusion_type==false)) {
+          var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type)
+          var outfile = (
+            "l0_abe2d_conjunctive_" + utterance.split(" ").join("") + "_" +
+            cf_premise_type + "_" +
+            cf_conclusion_type + "_" +
+            ABE2D.label
+          );
+          display(outfile);
+          display(listener_results);
+          if (listener_results != "Impossible") {
+            map(function(w) {
+              var prob = Math.exp(listener_results.score(w)) + " ~~~ " + JSON.stringify(run_physics(rewrite_worlds_from_rvs_fn(w)));
+              // var keep = (
+              //   (([0, 0.5, 1, -0.5, -1].indexOf(w.a_velocity)) >= 0) &&
+              //   (([0, 0.5, 1, -0.5, -1].indexOf(w.b_velocity)) >= 0) &&
+              //   (w.position_label=="AB") && 
+              //   (prob > 0.09)
+              // );
+              // var keep = (prob > 0.09);
+              var keep = true;
+              utils.write(rewrite_worlds_from_rvs_fn(w), prob, keep);
+              return prob;
+            }, (listener_results).support());
+
+            utils.finish(outfile)
+          }
+        // }
+      }
+    }, ["whether"])
+    // }, [false])
+    // }, ["whether", "how", false]);
+  }, ["whether"])
+  // }, [false])
+  // }, ["whether", "how", false]);
+// }, ["A existing caused B to move"]);
+// }, ["silence"]);
+}, ["E went through the gate because A existed"]);
+// }, ["A moved B"]);
+// }, [//"silence", "A moved B"]);
+
+// var utterance = "A moved B";
+// var cf_premise_type = "whether";
+// var cf_conclusion_type = "whether";
+// // var utterance = "silence";
+
+// display(utterance);
+// var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type);
+// display(listener_results);
+
+display("finished");
