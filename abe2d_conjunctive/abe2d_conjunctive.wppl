@@ -33,12 +33,20 @@ var abe2d_conjunctive = function() {
     utils.float(utils.get_variable("--angles")) :
     3
   );
+  if (n_angles == 1) {
+    display("possible angles: [" + Math.PI/4 + "]")
+  } else {
+    display("possible angles: " + JSON.stringify(map(function(x) {return Math.PI/4*x;}, myrange(0.8, 1.2, 0.4/(n_angles - 1)))));
+  }
 
   var angle_fn = function(center_angle) {
     return function() {
-      return uniformDraw(map(function(x) {return center_angle*x;}, myrange(0.8, 1.2, 0.4/(n_angles - 1))))
-      // return uniformDraw([center_angle*0.8, center_angle, center_angle*1.2]);
-      // return center_angle;
+      if (n_angles > 1) {
+        return uniformDraw(map(function(x) {return center_angle*x;}, myrange(0.8, 1.2, 0.4/(n_angles - 1))))
+      } else {
+        // return uniformDraw([center_angle*0.8, center_angle, center_angle*1.2]);
+        return center_angle;
+      }
     }
   }
 
@@ -60,7 +68,11 @@ var abe2d_conjunctive = function() {
     a_position: function() {return {x: 30, y: 10}},
     b_position: function() {return {x: 30, y: -10}},
     e_velocity: function() {return {x: 0, y: 0}},
-    e_position: function() {return {x: 7, y: 0}}
+    e_position: function() {return {x: 7, y: 0}},
+    block_a: function() {return flip(0.8) ? "DNE" : "exists"},
+    block_b: function() {return flip(0.2) ? "DNE" : "exists"}
+    // block_a: function() {return "DNE";},
+    // block_b: function() {return "exists";}
   };
 
   var get_velocity = function(speed, angle, exists) {
@@ -78,7 +90,9 @@ var abe2d_conjunctive = function() {
     return {
       A: {velocity: get_velocity(w.a_speed, w.a_angle, w.a_exists), position: w.a_position},
       B: {velocity: get_velocity(w.b_speed, w.b_angle, w.b_exists), position: w.b_position},
-      E: {velocity: w.e_velocity, position: w.e_position}
+      E: {velocity: w.e_velocity, position: w.e_position},
+      block_A: w.block_a,
+      block_B: w.block_b
     };
   }
 
@@ -123,13 +137,23 @@ var abe2d_conjunctive = function() {
     }, w);
     var later_world = utils.run_physics(world_with_DNEs_moved, timesteps);
     return _.fromPairs(map(function(ball_name) {
-      // if (_.keys(later_world).indexOf(ball_name)==-1) {
-      if (later_world[ball_name].position.y > 1000) {
-        [ball_name, {"velocity": "DNE", "position": "NA"}];
+      if (ball_name.length > 1) {
+        // if (_.keys(later_world).indexOf(ball_name)==-1) {
+        if (later_world[ball_name].position.y > 1000) {
+          [ball_name, "DNE"];
+        } else {
+          return [ball_name, "exists"];
+        }
+
       } else {
-        return [ball_name, later_world[ball_name]];
+        // if (_.keys(later_world).indexOf(ball_name)==-1) {
+        if (later_world[ball_name].position.y > 1000) {
+          [ball_name, {"velocity": "DNE", "position": "NA"}];
+        } else {
+          return [ball_name, later_world[ball_name]];
+        }
       }
-    }, ["A", "B", "E"]));
+    }, ["A", "B", "E", "block_A", "block_B"]));
   };
 
   var differently = function(fn, variables, w, obj, counterfactual_world, timing) {
@@ -378,7 +402,8 @@ var abe2d_conjunctive = function() {
     label: label,
     rewrite_worlds_from_rvs_fn: rewrite_worlds_from_rvs_fn,
     "pragmatic_listener": CF.pragmatic_listener,
-    "pragmatic_speaker": CF.pragmatic_speaker
+    "pragmatic_speaker": CF.pragmatic_speaker,
+    inspect_l0: CF.inspect_l0
   }
 
 };

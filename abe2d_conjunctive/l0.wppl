@@ -21,7 +21,7 @@ map(function(utterance) {
           display(listener_results);
           if (listener_results != "Impossible") {
             map(function(w) {
-              var prob = Math.exp(listener_results.score(w)) + " ~~~ " + JSON.stringify(run_physics(rewrite_worlds_from_rvs_fn(w)));
+              var prob = Math.exp(listener_results.score(w)) + " ~~~ " + JSON.stringify(run_physics(w));
               // var keep = (
               //   (([0, 0.5, 1, -0.5, -1].indexOf(w.a_velocity)) >= 0) &&
               //   (([0, 0.5, 1, -0.5, -1].indexOf(w.b_velocity)) >= 0) &&
@@ -30,7 +30,7 @@ map(function(utterance) {
               // );
               // var keep = (prob > 0.09);
               var keep = true;
-              utils.write(rewrite_worlds_from_rvs_fn(w), prob, keep);
+              utils.write(w, prob, keep);
               return prob;
             }, (listener_results).support());
 
@@ -38,15 +38,15 @@ map(function(utterance) {
           }
         // }
       }
-    // }, ["whether"])
+    }, ["whether"])
     // }, [false])
-    }, ["whether", "how", false]);
-  // }, ["whether"])
+    // }, ["whether", "how", false]);
+  }, ["whether"])
   // }, [false])
-  }, ["whether", "how", false]);
+  // }, ["whether", "how", false]);
 // }, ["A existing caused B to move"]);
-// }, ["silence"]);
-}, ["E went through the gate because A existed"]);
+}, ["silence"]);
+// }, ["E went through the gate because A existed"]);
 // }, ["A moved B"]);
 // }, [//"silence", "A moved B"]);
 

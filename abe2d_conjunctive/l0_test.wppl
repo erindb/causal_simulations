@@ -1,0 +1,65 @@
+// webppl l0_test.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+var ABE2D = abe2d_conjunctive();
+var inspect_l0 = ABE2D.inspect_l0;
+var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
+var run_physics = ABE2D.run_physics;
+
+var actual_world = rewrite_worlds_from_rvs_fn({
+  a_speed: -15,
+  b_speed: -15,
+  a_angle: Math.PI/4,
+  b_angle: -Math.PI/4,
+  a_exists: true,
+  b_exists: true,
+  a_position: {x: 30, y: 10},
+  b_position: {x: 30, y: -10},
+  e_velocity: {x: 0, y: 0},
+  e_position: {x: 7, y: 0},
+  block_a: "DNE",
+  block_b: "DNE"
+});
+
+var update_acc = function(acc, p, cp, cc) {
+  if (cp == "how") {
+    if (cc == "how") {
+      return [acc[0] + p, acc[1], acc[2], acc[3]];
+    } else {
+      return [acc[0], acc[1] + p, acc[2], acc[3]];
+    }
+  } else {
+    if (cc == "how") {
+      return [acc[0], acc[1], acc[2] + p, acc[3]];
+    } else {
+      return [acc[0], acc[1], acc[2], acc[3] + p];
+    }
+  }
+}
+
+var is_actual_world = function(w) {
+  return JSON.stringify(w) == JSON.stringify(actual_world);
+}
+
+display(map(function(utterance) {
+  var cf_premise_type = false;
+  var cf_conclusion_type = false;
+  var listener_results = inspect_l0(utterance, cf_premise_type, cf_conclusion_type);
+  display(listener_results);
+  var vals = listener_results.support();
+  var unnormed_prob_mass_for_actual_world = reduce(function(rs, acc) {
+    // display(rs);
+    if (is_actual_world(rs.result.w)) {
+      var prior_score = listener_results.score(rs);
+      var f = rs.factor;
+      var posterior_unnormed_score = prior_score + f;
+      var posterior_unnormed_prob = Math.exp(posterior_unnormed_score);
+      return update_acc(acc, posterior_unnormed_prob, rs.result.cp, rs.result.cc);
+    } else {
+      return acc
+    }
+  }, [0, 0, 0, 0], vals);
+
+  return [utterance, unnormed_prob_mass_for_actual_world];
+}, ["E went through the gate because A existed", "E went through the gate because B existed"]));
+
+display("finished");

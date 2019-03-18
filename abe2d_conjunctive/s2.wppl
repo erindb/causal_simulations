@@ -29,7 +29,9 @@ var w = rewrite_worlds_from_rvs_fn({
   a_position: {x: 30, y: 10},
   b_position: {x: 30, y: -10},
   e_velocity: {x: 0, y: 0},
-  e_position: {x: 7, y: 0}
+  e_position: {x: 7, y: 0},
+  block_a: "DNE",
+  block_b: "DNE"
 });
 display(l0("silence").score(w));
 
