@@ -17,8 +17,8 @@ var abe2d_conjunctive = function() {
 
   // WORLD PRIOR
 
-  var myrange = function(a, b, c) {
-    return map(function(x) {return _.round(x, 2);}, _.range(a, b+c, c));
+  var myrange = function(a, b, c, rounding) {
+    return map(function(x) {return _.round(x, rounding);}, _.range(a, b+c, c));
   }
 
   var dne_prob = (
@@ -27,28 +27,30 @@ var abe2d_conjunctive = function() {
     0.5
   );
 
+  var max_diff = 0.025;
+
   // Number of different velocities is given in input.
   var n_angles = (
     utils.get_variable("--angles") ?
     utils.float(utils.get_variable("--angles")) :
     3
   );
-  if (n_angles == 1) {
-    display("possible angles: [" + Math.PI/4 + "]")
-  } else {
-    display("possible angles: " + JSON.stringify(map(function(x) {return Math.PI/4*x;}, myrange(0.8, 1.2, 0.4/(n_angles - 1)))));
-  }
+
+  var get_possible_angles = function(center_angle) {
+    if (n_angles > 1) {
+      return map(function(x) {return center_angle*x;}, myrange(1 - max_diff, 1+max_diff, (2*max_diff)/(n_angles - 1), 10));
+    } else {
+      return [center_angle];
+    }
+  };
 
   var angle_fn = function(center_angle) {
     return function() {
-      if (n_angles > 1) {
-        return uniformDraw(map(function(x) {return center_angle*x;}, myrange(0.8, 1.2, 0.4/(n_angles - 1))))
-      } else {
-        // return uniformDraw([center_angle*0.8, center_angle, center_angle*1.2]);
-        return center_angle;
-      }
+      return uniformDraw(get_possible_angles(center_angle));
     }
   }
+  
+  display("possible angles: " + JSON.stringify(map(function(x) {return x/Math.PI + "pi"}, get_possible_angles(Math.PI/4))));
 
   var exists_fn = function() {
     return flip(dne_prob);
@@ -69,8 +71,12 @@ var abe2d_conjunctive = function() {
     b_position: function() {return {x: 30, y: -10}},
     e_velocity: function() {return {x: 0, y: 0}},
     e_position: function() {return {x: 7, y: 0}},
-    block_a: function() {return flip(0.8) ? "DNE" : "exists"},
-    block_b: function() {return flip(0.2) ? "DNE" : "exists"}
+    block_a_prob: function() {return uniformDraw([0.2, 0.8]);},
+    block_b_prob: function() {return uniformDraw([0.2, 0.8]);},
+    block_a_u: function() {return categorical([0.2, 0.6, 0.2], [0.1, 0.5, 0.9]);},
+    block_b_u: function() {return categorical([0.2, 0.6, 0.2], [0.1, 0.5, 0.9]);}
+    // block_a: function() {return flip(0.8) ? "DNE" : "exists"},
+    // block_b: function() {return flip(0.2) ? "DNE" : "exists"}
     // block_a: function() {return "DNE";},
     // block_b: function() {return "exists";}
   };
@@ -78,8 +84,8 @@ var abe2d_conjunctive = function() {
   var get_velocity = function(speed, angle, exists) {
     if (exists) {
       return {
-        x: 2 * speed * Math.cos(angle),
-        y: speed * Math.sin(angle)
+        x: _.round(2 * speed * Math.cos(angle), 5),
+        y: _.round(speed * Math.sin(angle), 5)
       }
     } else {
       return "DNE"
@@ -91,8 +97,16 @@ var abe2d_conjunctive = function() {
       A: {velocity: get_velocity(w.a_speed, w.a_angle, w.a_exists), position: w.a_position},
       B: {velocity: get_velocity(w.b_speed, w.b_angle, w.b_exists), position: w.b_position},
       E: {velocity: w.e_velocity, position: w.e_position},
-      block_A: w.block_a,
-      block_B: w.block_b
+      // block_A: w.block_a,
+      // block_B: w.block_b
+      block_A_prob: w.block_a_prob,
+      block_B_prob: w.block_b_prob,
+      // highest u, DNE (doesn't matter the prob)
+      // lowest u, exists (doesn't matter the prob)
+      // if prob is 0.8, then mid U is also DNE
+      // if prob is 0.2, then mid U is "exists"
+      block_A: (w.block_a_u < w.block_a_prob) ? "DNE" : "exists",
+      block_B: (w.block_b_u < w.block_b_prob) ? "DNE" : "exists"
     };
   }
 
@@ -205,6 +219,18 @@ var abe2d_conjunctive = function() {
     }
   };
 
+  var got_thru_block = function(w, obj, counterfactual_world, timing) {
+    var relevant_world = timing == "start" ? w : run_physics(w);
+    if (relevant_world[obj].velocity == "DNE") {
+      return false;
+    // } else if (relevant_world[obj].position.x >= -5.9) {
+    } else if (relevant_world["block_" + obj] == "DNE") {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   var meaning_functions = {
     "moved": moved,
     "moved differently": function(w, obj, counterfactual_world, timing) {
@@ -231,6 +257,16 @@ var abe2d_conjunctive = function() {
     "went through the gate differently": function(w, obj, counterfactual_world, timing) {
       return differently(
         went_thru_gate,
+        ["position", "velocity"],
+        w,
+        obj,
+        counterfactual_world,
+        timing);
+    },
+    "got through its block": got_thru_block,
+    "got through its block differently": function(w, obj, counterfactual_world, timing) {
+      return differently(
+        got_thru_block,
         ["position", "velocity"],
         w,
         obj,
@@ -403,7 +439,9 @@ var abe2d_conjunctive = function() {
     rewrite_worlds_from_rvs_fn: rewrite_worlds_from_rvs_fn,
     "pragmatic_listener": CF.pragmatic_listener,
     "pragmatic_speaker": CF.pragmatic_speaker,
-    inspect_l0: CF.inspect_l0
+    inspect_l0: CF.inspect_l0,
+    inspect_nested: CF.inspect_nested,
+    prior_sampler: CF.prior_sampler
   }
 
 };

@@ -2,64 +2,112 @@
 
 var ABE2D = abe2d_conjunctive();
 var inspect_l0 = ABE2D.inspect_l0;
+var inspect_nested = ABE2D.inspect_nested;
 var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
 var run_physics = ABE2D.run_physics;
+var prior_sampler = ABE2D.prior_sampler;
 
-var actual_world = rewrite_worlds_from_rvs_fn({
-  a_speed: -15,
-  b_speed: -15,
-  a_angle: Math.PI/4,
-  b_angle: -Math.PI/4,
-  a_exists: true,
-  b_exists: true,
-  a_position: {x: 30, y: 10},
-  b_position: {x: 30, y: -10},
-  e_velocity: {x: 0, y: 0},
-  e_position: {x: 7, y: 0},
-  block_a: "DNE",
-  block_b: "DNE"
-});
-
-var update_acc = function(acc, p, cp, cc) {
-  if (cp == "how") {
-    if (cc == "how") {
-      return [acc[0] + p, acc[1], acc[2], acc[3]];
-    } else {
-      return [acc[0], acc[1] + p, acc[2], acc[3]];
-    }
-  } else {
-    if (cc == "how") {
-      return [acc[0], acc[1], acc[2] + p, acc[3]];
-    } else {
-      return [acc[0], acc[1], acc[2], acc[3] + p];
-    }
-  }
+var nested = utils.get_flag("--nested");
+if (nested) {
+  display("using nested CF inference");
+} else {
+  display("using flat CF inference");
 }
+
+var l0_fn = nested ? inspect_nested : inspect_l0;
+
+
+// var actual_world = rewrite_worlds_from_rvs_fn({
+//   a_speed: -15,
+//   b_speed: -15,
+//   a_angle: Math.PI/4,
+//   b_angle: -Math.PI/4,
+//   a_exists: true,
+//   b_exists: true,
+//   a_position: {x: 30, y: 10},
+//   b_position: {x: 30, y: -10},
+//   e_velocity: {x: 0, y: 0},
+//   e_position: {x: 7, y: 0},
+//   block_a: "DNE",
+//   block_b: "DNE"
+// });
+
+var actual_world = {
+  "A":{"velocity":{"x":-21.2132,"y":-10.6066},"position":{"x":30,"y":10}},
+  "B":{"velocity":{"x":-21.2132,"y":10.6066},"position":{"x":30,"y":-10}},
+  "E":{"velocity":{"x":0,"y":0},"position":{"x":7,"y":0}},
+  "block_A_prob": 0.8,
+  "block_B_prob": 0.2,
+  "block_A":"DNE",
+  "block_B":"DNE"};
+
+// var update_acc = function(acc, p, cp, cc) {
+//   if (cp == "how") {
+//     if (cc == "how") {
+//       return [acc[0] + p, acc[1], acc[2], acc[3]];
+//     } else {
+//       return [acc[0], acc[1] + p, acc[2], acc[3]];
+//     }
+//   } else {
+//     if (cc == "how") {
+//       return [acc[0], acc[1], acc[2] + p, acc[3]];
+//     } else {
+//       return [acc[0], acc[1], acc[2], acc[3] + p];
+//     }
+//   }
+// }
 
 var is_actual_world = function(w) {
   return JSON.stringify(w) == JSON.stringify(actual_world);
 }
 
-display(map(function(utterance) {
-  var cf_premise_type = false;
-  var cf_conclusion_type = false;
-  var listener_results = inspect_l0(utterance, cf_premise_type, cf_conclusion_type);
-  display(listener_results);
-  var vals = listener_results.support();
-  var unnormed_prob_mass_for_actual_world = reduce(function(rs, acc) {
-    // display(rs);
-    if (is_actual_world(rs.result.w)) {
-      var prior_score = listener_results.score(rs);
-      var f = rs.factor;
-      var posterior_unnormed_score = prior_score + f;
-      var posterior_unnormed_prob = Math.exp(posterior_unnormed_score);
-      return update_acc(acc, posterior_unnormed_prob, rs.result.cp, rs.result.cc);
-    } else {
-      return acc
-    }
-  }, [0, 0, 0, 0], vals);
+display(map(
+  function(utterance) {
+    var cf_premise_type = "how";
+    var cf_conclusion_type = "how";
+    var listener_results = l0_fn(utterance, cf_premise_type, cf_conclusion_type, true);
+    // display(listener_results);
+    var vals = listener_results.support();
+    var unnormed_prob_mass_for_actual_world = reduce(function(rs, acc) {
+      // display(rs);
+      if (is_actual_world(rs.result.w)) {
+        var prior_score = listener_results.score(rs);
+        var f = rs.factor;
+        var posterior_unnormed_score = prior_score + f;
+        var posterior_unnormed_prob = Math.exp(posterior_unnormed_score);
+        // return update_acc(acc, posterior_unnormed_prob, rs.result.cp, rs.result.cc);
+        return acc + posterior_unnormed_prob;
+      } else {
+        return acc
+      }
+    // }, [0, 0, 0, 0], vals);
+    }, 0, vals);
 
-  return [utterance, unnormed_prob_mass_for_actual_world];
-}, ["E went through the gate because A existed", "E went through the gate because B existed"]));
+    return [utterance, unnormed_prob_mass_for_actual_world];
+  },
+  [
+    // "E went through the gate because A existed",
+    // "E went through the gate because B existed",
+    "E went through the gate because A got through its block",
+    "E went through the gate because B got through its block"
+  ]
+));
+
+
+// map(function(w) {
+//   var interesting = (w.a_exists && w.b_exists && //(w.block_a=="DNE") &&
+//    (w.block_b=="DNE") && (w.a_angle!=Math.PI/4));
+//   var e_goes_thru = (run_physics(rewrite_worlds_from_rvs_fn(w))).E.position.x < -24;
+//   var e_label = e_goes_thru ? "E goes through" : "E doesn't go through";
+//   var a_label = w.a_angle / Math.PI; //w.a_angle==Math.PI/4 ? "A star" : "A diff";
+//   var b_label = w.b_angle / Math.PI; //w.b_angle==-Math.PI/4 ? "B star" : "B diff";
+//   var label = e_label + " " + a_label + " " + b_label;
+//   var abdiff = w.a_angle != -w.b_angle;
+//   if (interesting && e_goes_thru //&& abdiff
+//     ) {
+//     utils.write(rewrite_worlds_from_rvs_fn(w), label, true);
+//   }
+// }, Infer({method: "enumerate"}, prior_sampler).support());
+// display(utils.finish("tmp"));
 
 display("finished");

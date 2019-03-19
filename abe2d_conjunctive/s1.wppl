@@ -8,8 +8,6 @@ var s1 = ABE2D.s1;
 var endorsement_fn = ABE2D.endorsement;
 var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
 
-var utteranceA = "E went through the gate because A existed";
-var utteranceB = "E went through the gate because B existed";
 
 var utterance_type = (
   utils.get_variable("--utterance") ?
@@ -17,6 +15,15 @@ var utterance_type = (
   "endorsements" // independent endorsements
 );
 display("for alternatives: " + utterance_type);
+
+var premise_type = (
+  utils.get_variable("--premise") ?
+  utils.get_variable("--premise") :
+  "existed" // independent endorsements
+);
+
+var utteranceA = premise_type=="existed" ? "E went through the gate because A existed" : "E went through the gate because A got through its block";
+var utteranceB = premise_type=="existed" ? "E went through the gate because B existed" : "E went through the gate because B got through its block";
 
 var utterances = [utteranceA, utteranceB];//utterance_type == "AorB" ? base_utterance.split("|||") : base_utterance;
 
@@ -34,6 +41,7 @@ var w = rewrite_worlds_from_rvs_fn({
   block_a: "DNE",
   block_b: "DNE"
 });
+// display(l0("silence"));
 display(l0("silence").score(w));
 
 if (utterance_type == "endorsements") {
