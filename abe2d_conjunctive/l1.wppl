@@ -3,21 +3,44 @@
 var ABE2D = abe2d_conjunctive();
 var pragmatic_listener = ABE2D.pragmatic_listener;
 var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
+var run_physics = ABE2D.run_physics;
 
-var utterance_type = utils.get_variable("--utterance");
-var base_utterance = utterance_type == "EbecauseB" ? "E went through the gate because B existed" : "E went through the gate because A existed";
-display(base_utterance);
+var nested = utils.get_flag("--nested");
+
+var premise_type = (
+  utils.get_variable("--premise") ?
+  utils.get_variable("--premise") :
+  "existed" // independent endorsements
+);
+display(premise_type);
+
+var utterance_type = (
+  utils.get_variable("--utterance") ?
+  utils.get_variable("--utterance") :
+  "endorsements" // independent endorsements
+);
+display("for alternatives: " + utterance_type);
+
+var utteranceA = premise_type=="existed" ? "E went through the gate because A existed" : "E went through the gate because A got through its block";
+var utteranceB = premise_type=="existed" ? "E went through the gate because B existed" : "E went through the gate because B got through its block";
+
+var utterances = [utteranceA, utteranceB];
+
+var alternatives = utterance_type=="endorsements" ? utterance : utterances.join("|||") + "|||silence";
+display(alternatives);
 
 map(function(utterance) {
   var outfile_head = (
     "l1_conjunctive_" + utterance.split(" ").join("") + "_" +
+    (nested ? "nested_" : "flat_") +
+    utterance_type + "_" +
     ABE2D.label
   );
   var outfile = outfile_head + ".json";
 
   display(outfile);
 
-  var listener_results = pragmatic_listener(utterance, base_utterance, true);
+  var listener_results = pragmatic_listener(utterance, alternatives, true);
 
   display(listener_results);
 
@@ -44,6 +67,6 @@ map(function(utterance) {
     }, (listener_results).support()));
 
   }
-}, [base_utterance]);
+}, utterances);
 
 display("finished");
