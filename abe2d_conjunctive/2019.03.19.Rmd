@@ -1,0 +1,221 @@
+---
+title: "Explanations"
+author: "Erin Bennett"
+header-includes:
+   - \usepackage{tikz}
+   - \usetikzlibrary{bayesnet}
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+rm(list = ls())
+knitr::opts_chunk$set(echo = F, warning = F, cache = F, message = F,
+                      sanitiz = F, fig.width = 5, fig.height = 3)
+```
+
+```{r load_libraries, message=F, warning=F}
+source("../utils.R")
+myggplot = function(..., rotate = 0) {
+  ggplot(...) + scale_colour_solarized() + scale_fill_solarized() +
+  theme(axis.text.x = element_text(angle=-rotate, hjust=ifelse(rotate==0,0.5,0)))
+}
+my_geom_bar = function(..., alpha=0.5) {
+  geom_bar(..., stat="identity", position="dodge", alpha=alpha)
+}
+```
+
+```{r}
+start_at = 1
+read_l0_file = function(
+  n_angles=3,
+  np="A",
+  cp="how",
+  cc="how",
+  stickiness="0.53",
+  lifted="unlifted") {
+  f = paste(
+    "../results/2019march18/",
+    "l0_abe2d_conjunctive_Ewentthroughthegatebecause",
+    np, "gotthroughitsblock_",
+    cp, "_", cc, "_nested_", lifted, "_", n_angles,
+    "angles_s", stickiness, ".js", sep="")
+  json = read_file(f) %>%
+    substr(15, nchar(.)) %>%
+    fromJSON()
+  # print(paste(start_at, "-", length(json$label)))
+  d = lapply(start_at:length(json$label), function(i) {
+    json[i,] %>%
+      unlist() %>%
+      data.frame(var = names(.), val=.) %>%
+      mutate(world = i) %>%
+      return
+    }) %>%
+    do.call(rbind, .) %>%
+    mutate(
+      n_angles=n_angles,
+      np=np,
+      cp=cp,
+      cc=cc,
+      stickiness=stickiness,
+      lifted=lifted)
+  start_at <<- length(json$label) + 1
+  return(d)
+}
+apply_inputs = function(cp_val, cc_val, np_val) {
+  return(read_l0_file(np=np_val, cp=cp_val, cc=cc_val))
+}
+# cs = expand.grid(np=c("A", "B"),
+#                  cp=c("how", "whether"),
+#                  cc=c("how", "whether")) %>%
+#   filter(!(cp%in%c("false", "whether"))) %>%
+#   rbind(expand.grid(np=c("A", "B"), cp="false", cc="false"))
+# l0 = mapply(apply_inputs, cs$cp, cs$cc, cs$np, SIMPLIFY = F) %>%
+#   do.call(rbind, .) %>%
+#   mutate(var = sub("world.", "", char(var))) %>%
+#   spread(var, val) %>%
+#   mutate(probability = num(label)) %>%
+#   select(-label) #%>%
+#   # separate(var, c("result_type", "obj", "var", "dim"))
+
+start_at = 1
+l0 = list(
+  read_l0_file(np="A", cp="how", cc="how"),
+  read_l0_file(np="A", cp="how", cc="whether"),
+  read_l0_file(np="A", cp="whether", cc="whether"),
+  read_l0_file(np="A", cp="false", cc="false"),
+  read_l0_file(np="B", cp="how", cc="how"),
+  read_l0_file(np="B", cp="how", cc="whether"),
+  read_l0_file(np="B", cp="whether", cc="whether"),
+  read_l0_file(np="B", cp="false", cc="false")
+) %>%
+  do.call(rbind, .) %>%
+  mutate(var = sub("world.", "", char(var))) %>%
+  spread(var, val) %>%
+  mutate(probability = num(label)) %>%
+  select(-label) #%>%
+  # separate(var, c("result_type", "obj", "var", "dim"))
+```
+
+
+```{r}
+start_at = 1
+read_l1_file = function(
+      n_angles=3,
+      np="A",
+      stickiness="0.53",
+      lifted="lifted",
+      alternatives="AorB") {
+  f = paste(
+    "../results/2019march18/",
+    "l1_conjunctive_Ewentthroughthegatebecause", np,
+    "gotthroughitsblock_nested_", alternatives, "_",
+    lifted, "_", n_angles, "angles_s", stickiness,
+    ".js", sep="")
+  json = read_file(f) %>%
+    substr(15, nchar(.)) %>%
+    fromJSON()
+  d = lapply(start_at:length(json$label), function(i) {
+    json[i,] %>% unlist() %>% data.frame(world=i, var = names(.), val=.) %>% return
+  }) %>%
+    do.call(rbind, .) %>% return() %>%
+    mutate(
+      n_angles=n_angles,
+      np=np,
+      stickiness=stickiness,
+      lifted=lifted,
+      alternatives=alternatives)
+  start_at <<- length(json$label) + 1
+  return(d)
+}
+# apply_inputs = function(np_val) {
+#   return(read_l1_file(np=np_val))
+# }
+# # read_l0_file()
+# cs = expand.grid(np=c("A", "B"))
+# l1 = mapply(apply_inputs, cs$np, SIMPLIFY = F) %>%
+#   do.call(rbind, .) %>%
+#   mutate(var = sub("world.", "", char(var))) %>%
+#   spread(var, val) %>%
+#   mutate(probability = num(label)) %>%
+#   select(-label)
+l1 = list(read_l1_file(np="A"), read_l1_file(np="B")) %>%
+  do.call(rbind, .) %>%
+  mutate(var = sub("world.", "", char(var))) %>%
+  spread(var, val) %>%
+  mutate(probability = num(label)) %>%
+  select(-label) %>%
+  group_by(n_angles, np, stickiness, lifted, alternatives,
+           A.position.x, A.position.y, A.velocity.x, A.velocity.y,
+           B.position.x, B.position.y, B.velocity.x, B.velocity.y,
+           block_A, block_A_prob, block_B, block_B_prob,
+           E.position.x, E.position.y, E.velocity.x, E.velocity.y) %>%
+  summarise(world = world[[1]], probability = sum(probability))
+```
+
+
+```{r}
+s2 = data.frame(
+  utterance = c("silence", "A", "B"),
+  probability = c(0.02, 0.48, 0.50),
+  lifted="lifted",
+  alternatives="AorB"
+)
+```
+
+
+```{r}
+actual_v_x = -21.2132
+l0_inf = l0 %>%
+  filter(A.velocity.x == actual_v_x) %>%
+  filter(B.velocity.x == actual_v_x) %>%
+  filter(block_A == "DNE") %>%
+  filter(block_B == "DNE") %>%
+  filter(block_A_prob == 0.8) %>%
+  filter(block_B_prob == 0.2)
+l0_inf %>%
+  group_by(np, cp, cc) %>%
+  summarise(
+    pmax = max(probability),
+    pmin = min(probability),
+    pcheck = pmax == pmin,
+    probability = mean(probability)) %>%
+  select(-pmax, -pmin, -probability)
+actual_v_x = -21.2132
+l1_inf = l1 %>%
+  filter(A.velocity.x == actual_v_x) %>%
+  filter(B.velocity.x == actual_v_x) %>%
+  filter(block_A == "DNE") %>%
+  filter(block_B == "DNE") %>%
+  filter(block_A_prob == 0.8) %>%
+  filter(block_B_prob == 0.2)
+l1_inf %>%
+  group_by(np) %>%
+  summarise(
+    pmax = max(probability),
+    pmin = min(probability),
+    pcheck = pmax == pmin,
+    probability = mean(probability))
+```
+
+
+```{r, fig.width=10, fig.height=4}
+l0_component = l0_inf %>%
+  mutate(cp = factor(cp, levels = c("how", "whether", "false"), labels=c("H", "W", "false"))) %>%
+  mutate(cc = factor(cc, levels = c("how", "whether", "false"), labels=c("H", "W", "false"))) %>%
+  mutate(model=paste("L0(x|", cp, ",", cc, ")", sep="")) %>%
+  mutate(model = ifelse(model=="L0(x|false,false)", "L0(x)", char(model))) %>%
+  ungroup() %>%
+  select(-cp, -cc, -display) %>%
+  mutate(alternatives = "NA")
+l1_component = l1_inf %>% mutate(model = "L1(x)") %>% ungroup()
+conjunctive_informativities = l0_component %>% rbind(l1_component) %>%
+  mutate(model_type = ifelse(model=="L1(x)", "pragmatic", ifelse(model=="L0(x)", "marginalized literal", "literal"))) %>%
+  mutate(condition = "conjunctive")
+informativities = conjunctive_informativities
+informativities %>%
+  myggplot(aes(x=model, y=probability, colour=np, fill=np)) +
+  my_geom_bar() +
+  facet_grid(condition~model_type, scales="free")
+ggsave("informativities.png", width = 10, height=4)
+```
+

@@ -46,7 +46,7 @@ map(function(utterance) {
 
   if (listener_results != "Impossible") {
     map(function(rs) {
-      var w = rs.w;
+      var w = rs;//.w;
       var prob = Math.exp(listener_results.score(rs));
       var keep = true;
       utils.write(w, prob, keep);
