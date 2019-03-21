@@ -155,10 +155,11 @@ l1 = list(read_l1_file(np="A"), read_l1_file(np="B")) %>%
 
 ```{r}
 s2 = data.frame(
-  utterance = c("silence", "A", "B"),
-  probability = c(0.02, 0.48, 0.50),
+  utterance = c("silence", "A", "B", "silence", "A", "B"),
+  probability = c(0.02, 0.48, 0.50, 0.02, 0.48, 0.50),
   lifted="lifted",
-  alternatives="AorB"
+  alternatives="AorB",
+  n_angles=c(3, 3, 3, 5, 5, 5)
 )
 ```
 
@@ -210,12 +211,15 @@ l0_component = l0_inf %>%
 l1_component = l1_inf %>% mutate(model = "L1(x)") %>% ungroup()
 conjunctive_informativities = l0_component %>% rbind(l1_component) %>%
   mutate(model_type = ifelse(model=="L1(x)", "pragmatic", ifelse(model=="L0(x)", "marginalized literal", "literal"))) %>%
+  select(model, model_type, np, probability) %>%
+  rename(utterance = np) %>%
+  rbind(s2 %>% mutate(model="S2(x)", model_type="speaker (A or B)") %>% select(-lifted, -alternatives)) %>%
   mutate(condition = "conjunctive")
 informativities = conjunctive_informativities
 informativities %>%
-  myggplot(aes(x=model, y=probability, colour=np, fill=np)) +
+  myggplot(aes(x=model, y=probability, colour=utterance, fill=utterance)) +
   my_geom_bar() +
-  facet_grid(condition~model_type, scales="free")
+  facet_wrap(condition~model_type, ncol=4, scales="free")
 ggsave("informativities.png", width = 10, height=4)
 ```
 

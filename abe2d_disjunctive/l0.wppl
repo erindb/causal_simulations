@@ -1,0 +1,86 @@
+// webppl l0.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+var ABE2D = abe2d_conjunctive();
+var l0 = ABE2D.l0;
+var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
+var run_physics = ABE2D.run_physics;
+
+var nested = utils.get_flag("--nested");
+
+var actual_world = {
+  "A":{"velocity":{"x":-28.06332,"y":-5.30212},"position":{"x":30,"y":10}},
+  "B":{"velocity":{"x":-28.06332,"y":5.30212},"position":{"x":30,"y":-10}},
+  "E":{"velocity":{"x":0,"y":0},"position":{"x":-22,"y":0}},
+  "block_A_prob":0.8,"block_B_prob":0.2,
+  "block_A":"DNE","block_B":"DNE"
+};
+
+var is_actual_world = function(w) {
+  return JSON.stringify(w) == JSON.stringify(actual_world);
+}
+
+map(function(utterance) {
+  map(function(cf_premise_type) {
+    map(function(cf_conclusion_type) {
+      // if (utterance!="silence" || (cf_premise_type=="how" && cf_conclusion_type=="how")) {
+        if ((cf_premise_type && cf_conclusion_type) || (cf_premise_type==false && cf_conclusion_type==false)) {
+          var outfile = (
+            "l0_abe2d_disjunctive_" + utterance.split(" ").join("") + "_" +
+            cf_premise_type + "_" +
+            cf_conclusion_type + "_" +
+            (nested ? "nested_" : "flat_") +
+            ABE2D.label
+          );
+          display(outfile);
+          var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type)
+          // display(listener_results.support());
+          if (listener_results != "Impossible") {
+            map(function(world) {
+              var prob = Math.exp(listener_results.score(world));// + " ~~~ " + JSON.stringify(run_physics(world));
+              // var keep = (
+              //   (([0, 0.5, 1, -0.5, -1].indexOf(w.a_velocity)) >= 0) &&
+              //   (([0, 0.5, 1, -0.5, -1].indexOf(w.b_velocity)) >= 0) &&
+              //   (w.position_label=="AB") && 
+              //   (prob > 0.09)
+              // );
+              // var keep = (prob > 0.09);
+              var keep = true;
+              // display("writing one world");
+              utils.write(world, prob, keep);
+              if (is_actual_world(world)) {
+                display(prob);
+              }
+              return prob;
+            }, (listener_results.support()));
+
+            utils.finish(outfile)
+          }
+        // }
+      }
+    // }, ["how"])
+    // }, ["whether"])
+    // }, [false])
+    }, ["how", "whether", false]);
+  // }, ["how"])
+  // }, ["whether"])
+  // }, [false])
+  }, ["how", "whether", false]);
+// }, ["A existing caused B to move"]);
+// }, ["silence"]);
+// }, ["E went through the gate because A existed"]);
+}, [
+  "E went through the gate because A existed", "E went through the gate because B existed",
+  "E went through the gate because A got through its block", "E went through the gate because B got through its block"]);
+// }, ["A moved B"]);
+// }, [//"silence", "A moved B"]);
+
+// var utterance = "A moved B";
+// var cf_premise_type = "whether";
+// var cf_conclusion_type = "whether";
+// // var utterance = "silence";
+
+// display(utterance);
+// var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type);
+// display(listener_results);
+
+display("finished");
