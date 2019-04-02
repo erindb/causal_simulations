@@ -8,9 +8,9 @@ var run_physics = ABE2D.run_physics;
 var nested = utils.get_flag("--nested");
 
 var actual_world = {
-  "A":{"velocity":{"x":-28.06332,"y":-5.30212},"position":{"x":30,"y":10}},
-  "B":{"velocity":{"x":-28.06332,"y":5.30212},"position":{"x":30,"y":-10}},
-  "E":{"velocity":{"x":0,"y":0},"position":{"x":-22,"y":0}},
+  "A":{"velocity":{"x":-21.2132,"y":-10.6066},"position":{"x":30,"y":10}},
+  "B":{"velocity":{"x":-21.2132,"y":10.6066},"position":{"x":30,"y":-10}},
+  "E":{"velocity":{"x":0,"y":0},"position":{"x":7,"y":0}},
   "block_A_prob":0.8,"block_B_prob":0.2,
   "block_A":"DNE","block_B":"DNE"
 };
