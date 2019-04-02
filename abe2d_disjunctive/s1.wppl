@@ -27,30 +27,24 @@ var utteranceB = premise_type=="existed" ? "E went through the gate because B ex
 
 var utterances = [utteranceA, utteranceB];//utterance_type == "AorB" ? base_utterance.split("|||") : base_utterance;
 
-// var w = rewrite_worlds_from_rvs_fn({
-//   a_speed: -15,
-//   b_speed: -15,
-//   a_angle: Math.PI/4,
-//   b_angle: -Math.PI/4,
-//   a_exists: true,
-//   b_exists: true,
-//   a_position: {x: 30, y: 10},
-//   b_position: {x: 30, y: -10},
-//   e_velocity: {x: 0, y: 0},
-//   e_position: {x: 7, y: 0},
-//   block_a_prob: 
-//   block_a: "DNE",
-//   block_b: "DNE"
-// });
-// display(l0("silence"));
 var w = {
-  "A":{"velocity":{"x":-21.2132,"y":-10.6066},"position":{"x":30,"y":10}},
-  "B":{"velocity":{"x":-21.2132,"y":10.6066},"position":{"x":30,"y":-10}},
-  "E":{"velocity":{"x":0,"y":0},"position":{"x":7,"y":0}},
+  "A":{"velocity":{"x":-28.06332,"y":-5.30212},"position":{"x":30,"y":10}},
+  "B":{"velocity":{"x":-28.06332,"y":5.30212},"position":{"x":30,"y":-10}},
+  "E":{"velocity":{"x":0,"y":0},"position":{"x":-22,"y":0}},
   "block_A_prob": 0.8,
   "block_B_prob": 0.2,
   "block_A":"DNE",
   "block_B":"DNE"};
+
+// map(function(w) {
+//   if (w.block_A == "DNE") {
+//     if (w.block_B == "DNE") {
+//       if (w.A.velocity.x==-28.06332) {
+//         display(w);
+//       }
+//     }
+//   }
+// }, l0("silence").support());
 
 display(l0("silence").score(w));
 
