@@ -36,6 +36,8 @@ var abe2d_disjunctive = function() {
     3
   );
 
+  var center_angle = 0.115*Math.PI;
+
   var get_possible_angles = function(center_angle) {
     if (n_angles > 1) {
       return map(function(x) {return center_angle*x;}, myrange(1 - max_diff, 1+max_diff, (2*max_diff)/(n_angles - 1), 10));
@@ -50,7 +52,7 @@ var abe2d_disjunctive = function() {
     }
   }
   
-  display("possible angles: " + JSON.stringify(map(function(x) {return x/Math.PI + "pi"}, get_possible_angles(Math.PI/4))));
+  display("possible angles: " + JSON.stringify(map(function(x) {return x/Math.PI + "pi"}, get_possible_angles(center_angle))));
 
   var exists_fn = function() {
     return flip(dne_prob);
@@ -63,8 +65,8 @@ var abe2d_disjunctive = function() {
   var prior_functions = {
     a_speed: function() {return -15;},
     b_speed: function() {return -15;},
-    a_angle: angle_fn(0.115*Math.PI),
-    b_angle: angle_fn(0.115*-Math.PI),
+    a_angle: angle_fn(center_angle),
+    b_angle: angle_fn(-center_angle),
     a_exists: exists_fn,
     b_exists: exists_fn,
     a_position: function() {return {x: 30, y: 10}},
