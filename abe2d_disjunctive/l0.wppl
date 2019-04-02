@@ -1,6 +1,6 @@
 // webppl l0.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
 
-var ABE2D = abe2d_conjunctive();
+var ABE2D = abe2d_disjunctive();
 var l0 = ABE2D.l0;
 var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
 var run_physics = ABE2D.run_physics;
@@ -33,6 +33,7 @@ map(function(utterance) {
           );
           display(outfile);
           var listener_results = l0(utterance, cf_premise_type, cf_conclusion_type)
+          display(listener_results);
           // display(listener_results.support());
           if (listener_results != "Impossible") {
             map(function(world) {
