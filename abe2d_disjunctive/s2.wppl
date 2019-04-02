@@ -1,0 +1,76 @@
+// webppl s2.wppl --require ../node_modules/utils/ --results_dir ../results/ --modules_dir ../node_modules/
+
+var ABE2D = abe2d_disjunctive();
+var l0 = ABE2D.l0;
+var label = ABE2D.label;
+var s2 = ABE2D.s2;
+var endorsement_fn = ABE2D.endorsement;
+var rewrite_worlds_from_rvs_fn = ABE2D.rewrite_worlds_from_rvs_fn;
+
+var nested = utils.get_flag("--nested");
+
+var utteranceA = "E went through the gate because A existed";
+var utteranceB = "E went through the gate because B existed";
+// var utteranceA = "E went through the gate because A got through its block";
+// var utteranceB = "E went through the gate because B got through its block";
+
+var utterance_type = (
+  utils.get_variable("--utterance") ?
+  utils.get_variable("--utterance") :
+  "endorsements" // independent endorsements
+);
+display("for alternatives: " + utterance_type);
+
+var utterances = [utteranceA, utteranceB];//utterance_type == "AorB" ? base_utterance.split("|||") : base_utterance;
+
+// var w = rewrite_worlds_from_rvs_fn({
+//   a_speed: -15,
+//   b_speed: -15,
+//   a_angle: Math.PI/4,
+//   b_angle: -Math.PI/4,
+//   a_exists: true,
+//   b_exists: true,
+//   a_position: {x: 30, y: 10},
+//   b_position: {x: 30, y: -10},
+//   e_velocity: {x: 0, y: 0},
+//   e_position: {x: 7, y: 0},
+//   block_a: "DNE",
+//   block_b: "DNE"
+// });
+var w = {
+  "A":{"velocity":{"x":-28.06332,"y":-5.30212},"position":{"x":30,"y":10}},
+  "B":{"velocity":{"x":-28.06332,"y":5.30212},"position":{"x":30,"y":-10}},
+  "E":{"velocity":{"x":0,"y":0},"position":{"x":-22,"y":0}},
+  "block_A_prob": 0.8,
+  "block_B_prob": 0.2,
+  "block_A":"DNE",
+  "block_B":"DNE"};
+display(l0("silence").score(w));
+
+if (utterance_type == "endorsements") {
+
+  map(function(utterance) {
+    var endorsement = endorsement_fn(w, utterance, "pragmatic");
+
+    var enumeration_label = "probability of '" + utterance + "': " + endorsement;
+    display(enumeration_label);
+
+    var world_with_DNEs_moved = mapObject(function(k, v) {
+      return (v.velocity=="DNE") ? {velocity: 0, position: k=="A" ? 10000 : 10010} : v;
+    }, w);
+
+    utils.write(world_with_DNEs_moved, enumeration_label, endorsement > 0.5);
+  }, utterances);
+
+} else {
+  // choose between A and B
+  var s2_dist = s2(w, utteranceA + "|||" + utteranceB + "|||silence");
+  display(map(function(u) {
+    return [u, Math.round(Math.exp(s2_dist.score(u))*100)/100];
+  }, s2_dist.support()))
+}
+
+// writes all worlds to viewable files
+utils.finish(
+  "s2_disjunctive_" + utterance_type.split(" ").join("") + "_" + label
+);
